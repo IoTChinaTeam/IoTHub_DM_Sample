@@ -67,7 +67,7 @@ client.open(function (err) {
         client.onDeviceMethod('firmwareUpdate', firmwareManager.onFirmwareUpdate);
         
         client.on('message', function (msg) {
-            console.log('Received message from cloud. Id: ' + msg.messageId + ' Body: ' + msg.data);
+            console.log('received message from cloud. Id: ' + msg.messageId + ' Body: ' + msg.data);
             client.complete(msg, printResultFor('completed'));
         });
  
