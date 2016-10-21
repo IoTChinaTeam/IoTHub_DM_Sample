@@ -1,0 +1,9 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="IoTHubConsole.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="ConnectionString" Type="System.String" Scope="User">
+      <Value Profile="(Default)">HostName=xzshengDMHub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=WAYnoaQQWSxqon6J0l9CSs3pOpWVMcmRiJSqHsf7u/A=</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>
