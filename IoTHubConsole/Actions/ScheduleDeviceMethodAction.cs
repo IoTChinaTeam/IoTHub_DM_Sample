@@ -15,6 +15,8 @@ namespace IoTHubConsole.Actions
             var method = new CloudToDeviceMethod(args.Names.Single());
             method.SetPayloadJson(args.Values.Single());
 
+            var startTime = DateTime.UtcNow + TimeSpan.FromSeconds(args.StartOffsetInSeconds);
+
             JobResponse job;
             if (args.DeviceIds != null)
             {
@@ -22,7 +24,7 @@ namespace IoTHubConsole.Actions
                     Guid.NewGuid().ToString(),
                     args.DeviceIds,
                     method,
-                    DateTime.UtcNow,
+                    startTime,
                     args.TimeoutInSeconds);
             }
             else
@@ -31,10 +33,11 @@ namespace IoTHubConsole.Actions
                     Guid.NewGuid().ToString(),
                     args.QueryCondition,
                     method,
-                    DateTime.UtcNow,
+                    startTime,
                     args.TimeoutInSeconds);
             }
 
+            Console.WriteLine($"{job.Type} job {job.JobId} scheduled");
             await IoTHubHelper.WaitJob(client, job);
         }
     }

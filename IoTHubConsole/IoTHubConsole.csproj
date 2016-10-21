@@ -78,6 +78,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Actions\AddDeviceAction.cs" />
+    <Compile Include="Actions\CancelJobsAction.cs" />
     <Compile Include="Actions\InvokeMethodAction.cs" />
     <Compile Include="Actions\QueryDevicesAction.cs" />
     <Compile Include="Actions\QueryJobsAction.cs" />

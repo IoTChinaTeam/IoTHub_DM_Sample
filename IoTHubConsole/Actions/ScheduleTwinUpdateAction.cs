@@ -16,6 +16,8 @@ namespace IoTHubConsole.Actions
             // Workaround
             twin.Tags["dummy"] = string.Empty;
 
+            var startTime = DateTime.UtcNow + TimeSpan.FromSeconds(args.StartOffsetInSeconds);
+
             var client = JobClient.CreateFromConnectionString(Settings.Default.ConnectionString);
 
             JobResponse job;
@@ -25,7 +27,7 @@ namespace IoTHubConsole.Actions
                     Guid.NewGuid().ToString(),
                     args.DeviceIds,
                     twin,
-                    DateTime.UtcNow,
+                    startTime,
                     args.TimeoutInSeconds);
             }
             else
@@ -34,10 +36,11 @@ namespace IoTHubConsole.Actions
                     Guid.NewGuid().ToString(),
                     args.QueryCondition,
                     twin,
-                    DateTime.UtcNow,
+                    startTime,
                     args.TimeoutInSeconds);
             }
 
+            Console.WriteLine($"{job.Type} job {job.JobId} scheduled");
             await IoTHubHelper.WaitJob(client, job);
         }
     }

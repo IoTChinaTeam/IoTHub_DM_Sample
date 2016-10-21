@@ -17,6 +17,7 @@ namespace IoTHubConsole
         InvokeMethod,
         ScheduleDeviceMethod,
         QueryJobs,
+        CancelJobs,
         SendMessage
     }
 
@@ -37,6 +38,9 @@ namespace IoTHubConsole
 
         [Argument(ArgumentType.Multiple, ShortName = "v", HelpText = "The value of tag/property, or parameter in JSON for the method")]
         public string[] Values;
+
+        [Argument(ArgumentType.AtMostOnce, ShortName = "o", DefaultValue = 0)]
+        public int StartOffsetInSeconds;
 
         [Argument(ArgumentType.AtMostOnce, ShortName = "t", DefaultValue = 3600)]
         public int TimeoutInSeconds;
@@ -115,6 +119,10 @@ namespace IoTHubConsole
 
                 case Action.QueryJobs:
                     await QueryJobsAction.Do(args);
+                    break;
+
+                case Action.CancelJobs:
+                    await CancelJobsAction.Do(args);
                     break;
 
                 case Action.SendMessage:
