@@ -3,7 +3,8 @@ var config = require('./config');
 var firmwareManager = require('./firmware');
 var Client = require('azure-iot-device').Client;
 var Protocol = require('azure-iot-device-mqtt').Mqtt;
-var connectionString = config.connectionString;
+
+var connectionString = config.getConnectionString();
 var client = Client.fromConnectionString(connectionString, Protocol);
 firmwareManager.setClient(client);
 
@@ -49,6 +50,13 @@ function handleTwinChange (twin, desiredChange) {
     });
 }
 
+function printResultFor(op) {
+  return function printResult(err, res) {
+    if (err) console.log(op + ' error: ' + err.toString());
+    if (res) console.log(op + ' status: ' + res.constructor.name);
+  };
+}
+
 client.open(function (err) {
     if (err) {
         console.error('could not open IotHub client');
@@ -57,7 +65,12 @@ client.open(function (err) {
 
         client.onDeviceMethod('writeLine', onWriteLine);
         client.onDeviceMethod('firmwareUpdate', firmwareManager.onFirmwareUpdate);
-
+        
+        client.on('message', function (msg) {
+            console.log('Received message from cloud. Id: ' + msg.messageId + ' Body: ' + msg.data);
+            client.complete(msg, printResultFor('completed'));
+        });
+ 
         client.getTwin(function (err, twin) {
             if (err) {
                 console.error('could not get twin');
