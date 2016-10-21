@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using IoTHubConsole.Properties;
 using Microsoft.Azure.Devices;
 using Newtonsoft.Json;
 
@@ -62,7 +63,12 @@ namespace IoTHubConsole
 
         static public void OutputDevice(Twin twin, Device device = null)
         {
+            var defaultColor = Console.ForegroundColor;
+
+            Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine($"Device [{twin.DeviceId}]");
+            Console.ForegroundColor = defaultColor;
+
             Console.WriteLine($"Tag: {twin.Tags.ToJson(Formatting.Indented)}");
             Console.WriteLine($"Desired properties: {twin.Properties.Desired.ToJson(Formatting.Indented)}");
             Console.WriteLine($"Reported properties: {twin.Properties.Reported.ToJson(Formatting.Indented)}");
@@ -71,6 +77,9 @@ namespace IoTHubConsole
             {
                 Console.WriteLine($"Primary key: {device.Authentication.SymmetricKey.PrimaryKey}");
                 Console.WriteLine($"Secondary key: {device.Authentication.SymmetricKey.SecondaryKey}");
+
+                var builder = IotHubConnectionStringBuilder.Create(Settings.Default.ConnectionString);
+                Console.WriteLine($"HostName={builder.HostName};DeviceId={device.Id};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}");
             }
 
             Console.WriteLine();
@@ -80,7 +89,7 @@ namespace IoTHubConsole
         {
             while (true)
             {
-                Console.WriteLine($"{job.Status} {job.DeviceJobStatistics?.SucceededCount.ToString() ?? "-"}/{job.DeviceJobStatistics?.DeviceCount.ToString() ?? "-"}");
+                Console.WriteLine($"{DateTime.Now} {job.Status} {job.DeviceJobStatistics?.SucceededCount.ToString() ?? "-"}/{job.DeviceJobStatistics?.DeviceCount.ToString() ?? "-"}");
 
                 if (job.Status == JobStatus.Failed)
                 {
