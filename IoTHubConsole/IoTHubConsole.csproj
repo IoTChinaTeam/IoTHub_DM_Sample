@@ -83,6 +83,7 @@
     <Compile Include="Actions\QueryJobsAction.cs" />
     <Compile Include="Actions\ScheduleDeviceMethodAction.cs" />
     <Compile Include="Actions\ScheduleTwinUpdateAction.cs" />
+    <Compile Include="Actions\SendMessageAction.cs" />
     <Compile Include="CommandLineArguments.cs" />
     <Compile Include="Actions\DeleteDeviceAction.cs" />
     <Compile Include="IoTHubHelper.cs" />

@@ -15,11 +15,26 @@ namespace IoTHubConsole
                 if (pair.Key.StartsWith("tags."))
                 {
                     string name = pair.Key.Substring(5);
-                    twin.Tags[name] = pair.Value;
+
+                    try
+                    {
+                        twin.Tags[name] = int.Parse(pair.Value);
+                    }
+                    catch
+                    {
+                        twin.Tags[name] = pair.Value;
+                    }
                 }
                 else
                 {
-                    twin.Properties.Desired[pair.Key] = pair.Value;
+                    try
+                    {
+                        twin.Properties.Desired[pair.Key] = int.Parse(pair.Value);
+                    }
+                    catch
+                    {
+                        twin.Properties.Desired[pair.Key] = pair.Value;
+                    }
                 }
             }
         }

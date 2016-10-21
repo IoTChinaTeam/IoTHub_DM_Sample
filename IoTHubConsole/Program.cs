@@ -16,7 +16,8 @@ namespace IoTHubConsole
         ScheduleTwinUpdate,
         InvokeMethod,
         ScheduleDeviceMethod,
-        QueryJobs
+        QueryJobs,
+        SendMessage
     }
 
 #pragma warning disable 649
@@ -39,6 +40,9 @@ namespace IoTHubConsole
 
         [Argument(ArgumentType.AtMostOnce, ShortName = "t", DefaultValue = 3600)]
         public int TimeoutInSeconds;
+
+        [Argument(ArgumentType.AtMostOnce, ShortName = "m")]
+        public string C2DMessage;
 
         public Dictionary<string, string> KVPairs
         {
@@ -111,6 +115,10 @@ namespace IoTHubConsole
 
                 case Action.QueryJobs:
                     await QueryJobsAction.Do(args);
+                    break;
+
+                case Action.SendMessage:
+                    await SendMessageAction.Do(args);
                     break;
 
                 default:
