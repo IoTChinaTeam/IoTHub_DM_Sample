@@ -19,6 +19,7 @@ namespace IoTHubConsole
         ListJobs
     }
 
+#pragma warning disable 649
     class CmdArguments
     {
         [Argument(ArgumentType.Required, ShortName = "a")]
@@ -54,6 +55,7 @@ namespace IoTHubConsole
             }
         }
     }
+#pragma warning restore 649
 
     class Program
     {
