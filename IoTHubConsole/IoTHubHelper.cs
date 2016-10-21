@@ -12,29 +12,22 @@ namespace IoTHubConsole
         {
             foreach (var pair in values)
             {
+                dynamic value = pair.Value == "null" ? null : pair.Value;
+
+                int intValue;
+                if (int.TryParse(pair.Value, out intValue))
+                {
+                    value = intValue;
+                }
+
                 if (pair.Key.StartsWith("tags."))
                 {
                     string name = pair.Key.Substring(5);
-
-                    try
-                    {
-                        twin.Tags[name] = int.Parse(pair.Value);
-                    }
-                    catch
-                    {
-                        twin.Tags[name] = pair.Value;
-                    }
+                    twin.Tags[name] = value;
                 }
                 else
                 {
-                    try
-                    {
-                        twin.Properties.Desired[pair.Key] = int.Parse(pair.Value);
-                    }
-                    catch
-                    {
-                        twin.Properties.Desired[pair.Key] = pair.Value;
-                    }
+                    twin.Properties.Desired[pair.Key] = value;
                 }
             }
         }
