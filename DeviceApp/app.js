@@ -1,87 +1,53 @@
 'use strict';
+
 var config = require('./config');
-var firmwareManager = require('./firmware');
-var Client = require('azure-iot-device').Client;
-var Protocol = require('azure-iot-device-mqtt').Mqtt;
+var logger = require('./logger').create("Main");
+var fork = require('child_process').fork;
+var debug = typeof v8debug === 'object';
+var devices = [];
 
-var connectionString = config.getConnectionString();
-var client = Client.fromConnectionString(connectionString, Protocol);
-firmwareManager.setClient(client);
-
-function onWriteLine(request, response) {
-    console.log(request.payload);
-
-    response.send(200, 'Input was written to log.', function (err) {
-        if (err) {
-            console.error('An error ocurred when sending a method response:\n' + err.toString());
-        } else {
-            console.log('Response to method \'' + request.methodName + '\' sent successfully.');
-        }
-    });
+if (process.argv.length == 5) {
+    // run device in main process
+    var setting = config.parseFromArgv();
+    var device = require('./device').create(setting.hostName, setting.deviceId, setting.key);
+    device.run();
 }
-
-function handleTwinChange (twin, desiredChange) {
-    console.log("received changes: " + JSON.stringify(desiredChange));
-
-    var patch = {};
-    Object.keys(desiredChange).forEach(function(key) {   
-
-        if (key && key.indexOf('$') == 0) {
-            return;
-        }
-
-        if (key && key.indexOf('ignore') == -1) {
-            patch[key] = desiredChange[key];
-        }
-        else {
-            console.log('desired property ' + key + ' has been ignored');
-        }
-    });
-
-    console.log("reporting changes: " + JSON.stringify(patch));
-                    
-    twin.properties.reported.update(patch, function (err) {
-        if (err) {
-            console.error('could not update twin');
-        } 
-        else {
-            console.log('twin state reported');
-        }
-    });
-}
-
-function printResultFor(op) {
-  return function printResult(err, res) {
-    if (err) console.log(op + ' error: ' + err.toString());
-    if (res) console.log(op + ' status: ' + res.constructor.name);
-  };
-}
-
-client.open(function (err) {
-    if (err) {
-        console.error('could not open IotHub client');
-    } else {
-        console.log('client opened');
-
-        client.onDeviceMethod('writeLine', onWriteLine);
-        client.onDeviceMethod('firmwareUpdate', firmwareManager.onFirmwareUpdate);
-        
-        client.on('message', function (msg) {
-            console.log('received message from cloud. Id: ' + msg.messageId + ' Body: ' + msg.data);
-            client.complete(msg, printResultFor('completed'));
+else if (process.argv.length == 3) {
+    var fs = require('fs');
+    fs.readFile(process.argv[2], 'utf8', function (err, data) {
+        if (err) throw err;
+        var setting = JSON.parse(data);
+        setting.devices.forEach(function(item) {
+            createDevice(setting.hostName, item.deviceId, item.key);
         });
- 
-        client.getTwin(function (err, twin) {
-            if (err) {
-                console.error('could not get twin');
-            } 
-            else {
-                console.log('retrieved device twin');
-                
-                twin.on('properties.desired', function (desiredChange) {
-                    handleTwinChange(twin, desiredChange);
-                });
-            }
-        });
-    }
+    });
+}
+else {
+    console.log("Command: node app.js <HostName> <DeviceId> <Key>");
+    console.log("Command: node app.js <devices json file path>");
+    process.exit();
+}
+
+process.on('SIGINT', function(){
+    logger.log('exiting');
+    stopDevices();
 });
+
+function createDevice(hostName, deviceId, key) {
+    // run device in child process
+    logger.log('creating device %s', deviceId);
+    var device = fork('./child.js', [ hostName, deviceId, key ], debug ? { execArgv: ['--debug'] } : null);
+    devices.push(device);
+    device.on('close', function (code) {
+        logger.log('child process exited with code ' + code);
+    });
+    device.on('message', (m) => {
+        logger.log('got message:', m);
+    });
+}
+
+function stopDevices(){
+    devices.forEach(function(device) {
+        device.kill();
+    });
+}

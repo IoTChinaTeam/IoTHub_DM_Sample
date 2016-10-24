@@ -1,30 +1,39 @@
 // This is a modified sample code  from https://azure.microsoft.com/en-us/documentation/articles/iot-hub-firmware-update/
+'use strict';
 
-var client;
+var FirmwareManager = function (client, logger) {
+  this.client = client;
+  this.logger = logger;
+};
 
-var reportFWUpdateThroughTwin = function(twin, firmwareUpdateValue) {
+FirmwareManager.create = function (client, logger) {
+  return new FirmwareManager(client, logger);
+};
+
+FirmwareManager.prototype.reportFWUpdateThroughTwin = function(twin, firmwareUpdateValue) {
   var patch = {
       iothubDM : {
         firmwareUpdate : firmwareUpdateValue
       }
   };
 
+  var self = this;
   twin.properties.reported.update(patch, function(err) {
     if (err) throw err;
-    console.log('twin state reported - ' + firmwareUpdateValue.status);
+    self.logger.log('twin state reported - ' + firmwareUpdateValue.status);
   });
 };
 
-var simulateDownloadImage = function(imageUrl, callback) {
+FirmwareManager.prototype.simulateDownloadImage = function(imageUrl, callback) {
   var error = null;
   var image = "[fake image data]";
 
-  console.log("Downloading image from " + imageUrl);
+  this.logger.log("Downloading image from " + imageUrl);
 
   callback(error, image);
-}
+};
 
-var simulateApplyImage = function(imageData, callback) {
+FirmwareManager.prototype.simulateApplyImage = function(imageData, callback) {
   var error = null;
 
   if (!imageData) {
@@ -32,12 +41,12 @@ var simulateApplyImage = function(imageData, callback) {
   }
 
   callback(error);
-}
+};
 
-var waitToDownload = function(twin, fwPackageUriVal, callback) {
+FirmwareManager.prototype.waitToDownload = function(twin, fwPackageUriVal, callback) {
   var now = new Date();
 
-  reportFWUpdateThroughTwin(twin, {
+  this.reportFWUpdateThroughTwin(twin, {
     fwPackageUri: fwPackageUriVal,
     status: 'waiting',
     error : null,
@@ -46,20 +55,20 @@ var waitToDownload = function(twin, fwPackageUriVal, callback) {
   setTimeout(callback, 4000);
 };
 
-var downloadImage = function(twin, fwPackageUriVal, callback) {
+FirmwareManager.prototype.downloadImage = function(twin, fwPackageUriVal, callback) {
   var now = new Date();   
-
-  reportFWUpdateThroughTwin(twin, {
+  var self = this;
+  this.reportFWUpdateThroughTwin(twin, {
     status: 'downloading',
   });
 
   setTimeout(function() {
     // Simulate download
-    simulateDownloadImage(fwPackageUriVal, function(err, image) {
+    self.simulateDownloadImage(fwPackageUriVal, function(err, image) {
 
       if (err)
       {
-        reportFWUpdateThroughTwin(twin, {
+        self.reportFWUpdateThroughTwin(twin, {
           status: 'downloadfailed',
           error: {
             code: error_code,
@@ -68,7 +77,7 @@ var downloadImage = function(twin, fwPackageUriVal, callback) {
         });
       }
       else {        
-        reportFWUpdateThroughTwin(twin, {
+        self.reportFWUpdateThroughTwin(twin, {
           status: 'downloadComplete',
           downloadCompleteTime: now.toISOString(),
         });
@@ -80,10 +89,10 @@ var downloadImage = function(twin, fwPackageUriVal, callback) {
   }, 4000);
 };
 
-var applyImage = function(twin, imageData, callback) {
+FirmwareManager.prototype.applyImage = function(twin, imageData, callback) {
   var now = new Date();   
-
-  reportFWUpdateThroughTwin(twin, {
+  var self = this;
+  this.reportFWUpdateThroughTwin(twin, {
     status: 'applying',
     startedApplyingImage : now.toISOString()
   });
@@ -91,9 +100,9 @@ var applyImage = function(twin, imageData, callback) {
   setTimeout(function() {
 
     // Simulate apply firmware image
-    simulateApplyImage(imageData, function(err) {
+    self.simulateApplyImage(imageData, function(err) {
       if (err) {
-        reportFWUpdateThroughTwin(twin, {
+        self.reportFWUpdateThroughTwin(twin, {
           status: 'applyFailed',
           error: {
             code: err.error_code,
@@ -101,7 +110,7 @@ var applyImage = function(twin, imageData, callback) {
           }
         });
       } else { 
-        reportFWUpdateThroughTwin(twin, {
+        self.reportFWUpdateThroughTwin(twin, {
           status: 'applyComplete',
           lastFirmwareUpdate: now.toISOString()
         });    
@@ -114,14 +123,15 @@ var applyImage = function(twin, imageData, callback) {
   }, 4000);
 };
 
-var onFirmwareUpdate = function(request, response) {
+FirmwareManager.prototype.onFirmwareUpdate = function(request, response) {
 
+  var self = this;
   // Respond the cloud app for the direct method
   response.send(200, 'FirmwareUpdate started', function(err) {
     if (!err) {
-      console.error('An error occured when sending a method response:\n' + err.toString());
+      self.logger.error('An error occured when sending a method response:\n' + err.toString());
     } else {
-      console.log('Response to method \'' + request.methodName + '\' sent successfully.');
+      self.logger.log('Response to method \'' + request.methodName + '\' sent successfully.');
     }
   });
 
@@ -129,27 +139,21 @@ var onFirmwareUpdate = function(request, response) {
   var fwPackageUri = request.payload.fwPackageUri;
 
   // Obtain the device twin
-  client.getTwin(function(err, twin) {
+  self.client.getTwin(function(err, twin) {
     if (err) {
-      console.error('Could not get device twin.');
+      self.logger.error('Could not get device twin.');
     } else {
-      console.log('Device twin acquired.');
+      self.logger.log('Device twin acquired.');
 
       // Start the multi-stage firmware update
-      waitToDownload(twin, fwPackageUri, function() {
-        downloadImage(twin, fwPackageUri, function(imageData) {
-          applyImage(twin, imageData, function() {});    
+      self.waitToDownload(twin, fwPackageUri, function() {
+        self.downloadImage(twin, fwPackageUri, function(imageData) {
+          self.applyImage(twin, imageData, function() {});    
         });  
       });
-
     }
   });
 };
-var setClient = function (clientInstance) {
-    client = clientInstance;
-}
 
-module.exports = { 
-    onFirmwareUpdate: onFirmwareUpdate,
-    setClient: setClient
-};
+
+module.exports = FirmwareManager;
