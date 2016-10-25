@@ -31,6 +31,7 @@ else {
 process.on('SIGINT', function(){
     logger.log('exiting');
     stopDevices();
+    process.exit();
 });
 
 function createDevice(hostName, deviceId, key) {
