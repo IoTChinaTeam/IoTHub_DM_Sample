@@ -21,7 +21,7 @@ Device.prototype.getConnectionString = function (hostName, deviceId, key) {
 
 Device.prototype.onWriteLine = function(request, response) {
     var self = this;
-    this.logger.log(request.payload);
+    this.logger.log('writeLine: ' + JSON.stringify(request.payload));
 
     response.send(200, 'Input was written to log.', function (err) {
         if (err) {
