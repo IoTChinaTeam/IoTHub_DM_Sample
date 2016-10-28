@@ -86,7 +86,7 @@ Device.prototype.messageProcesser = function(msg) {
 
 Device.prototype.send = function(data) {
     var message = new Message(data);
-    this.logger.log("Sending message: " + message.data);
+    this.logger.log("Sending message");
     this.client.sendEvent(message, this.printResultFor('send'));
 };
 
