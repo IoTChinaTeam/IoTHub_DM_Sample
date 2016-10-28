@@ -13,31 +13,69 @@ if (process.argv.length == 5) {
     device.run();
 }
 else if (process.argv.length == 3) {
-    var fs = require('fs');
-    fs.readFile(process.argv[2], 'utf8', function (err, data) {
-        if (err) throw err;
-        var setting = JSON.parse(data);
-        setting.devices.forEach(function(item) {
-            createDevice(setting.hostName, item.deviceId, item.key);
-        });
-    });
+    loadFromConfigFile(process.argv[2]); 
 }
 else {
     console.log("Command: node app.js <HostName> <DeviceId> <Key>");
-    console.log("Command: node app.js <devices json file path>");
+    console.log("Command: node app.js <devices json file path or app setting file>");
     process.exit();
 }
 
 process.on('SIGINT', function(){
     logger.log('exiting');
     stopDevices();
-    process.exit();
+    logger.log('waiting for child devices to be closed');
+    setTimeout(function(){
+        process.exit();
+    }, 2000);
 });
 
-function createDevice(hostName, deviceId, key) {
+function loadFromConfigFile(path){
+    var fs = require('fs');
+    fs.readFile(path, 'utf8', function (err, data) {
+        if (err) throw err;
+        var setting = JSON.parse(data);
+        if (setting.devices){
+            createDevicesFromFile(setting);
+        }
+        else {
+            createDevicesFromTable(setting);
+        }
+    });
+}
+
+function createDevicesFromFile(setting) {
+    setting.devices.forEach(function(item) {
+        createDevice(setting.hostName, item.deviceId, item.key);
+    });
+}
+
+function createDevicesFromTable(setting) {
+    
+    var hostName = setting.iotHubName;
+    var storage = require('./storage.js').create(logger, setting.serviceStoreAccountConnectionString);
+    var docDb = require('./docDb.js').create(logger, setting.docDbEndPoint, setting.docDbKey, setting.docDbDatabaseId, setting.docDbDocumentCollectionId);
+    storage.getDeviceList(function(devices){
+        if (devices) {
+            devices.forEach(function(device) {
+                docDb.getDevice(device.deviceId, function(deviceInfo) {
+                    createDevice(hostName, device.deviceId, device.key, deviceInfo);
+                }); 
+            });
+        }
+    });
+}
+
+function createDevice(hostName, deviceId, key, info) {
     // run device in child process
     logger.log('creating device %s', deviceId);
-    var device = fork('./child.js', [ hostName, deviceId, key ], debug ? { execArgv: ['--debug'] } : null);
+    var parameters = [ hostName, deviceId, key ];
+    if (info) {
+        var infoString = JSON.stringify(info);
+        parameters.push(infoString);
+    }
+    
+    var device = fork('./child.js', parameters, debug ? { execArgv: ['--debug=' + getRandomPort()] } : null);
     devices.push(device);
     device.on('close', function (code) {
         logger.log('child process exited with code ' + code);
@@ -52,3 +90,10 @@ function stopDevices(){
         device.kill();
     });
 }
+
+function getRandomPort() { 
+    var max = 10000;
+    var min = 5000;
+    return Math.floor(Math.random() * (max - min + 1)) + min; 
+} 
+

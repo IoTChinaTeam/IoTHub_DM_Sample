@@ -136,7 +136,7 @@ FirmwareManager.prototype.onFirmwareUpdate = function(request, response) {
   });
 
   // Get the parameter from the body of the method request
-  var fwPackageUri = request.payload.fwPackageUri;
+  var fwPackageUri = request.payload && request.payload.fwPackageUri ? request.payload.fwPackageUri : "";
 
   // Obtain the device twin
   self.client.getTwin(function(err, twin) {
