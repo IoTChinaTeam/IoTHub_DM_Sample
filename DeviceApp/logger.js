@@ -10,7 +10,8 @@ Logger.create = function (deviceId) {
 
 Logger.prototype.addDefaultMessage = function (args) {
     if (args && args.length > 0) {
-        args[0] = "[" + this.deviceId + "] " + args[0];
+        var t = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+        args[0] = t + " [" + this.deviceId + "] " + args[0];
     }
 };
 
