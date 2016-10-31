@@ -4,7 +4,7 @@ var config = require('./config');
 var logger = require('./logger').create("Main");
 var fork = require('child_process').fork;
 var debug = typeof v8debug === 'object';
-var devices = [];
+var devices = {};
 
 if (process.argv.length == 5) {
     // run device in main process
@@ -55,13 +55,39 @@ function createDevicesFromTable(setting) {
     var hostName = setting.iotHubName;
     var storage = require('./storage.js').create(logger, setting.serviceStoreAccountConnectionString);
     var docDb = require('./docDb.js').create(logger, setting.docDbEndPoint, setting.docDbKey, setting.docDbDatabaseId, setting.docDbDocumentCollectionId);
-    storage.getDeviceList(function(devices){
-        if (devices) {
-            devices.forEach(function(device) {
-                docDb.getDevice(device.deviceId, function(deviceInfo) {
-                    createDevice(hostName, device.deviceId, device.key, deviceInfo);
-                }); 
+
+    storage.getDeviceList(function(deviceList){
+        if (deviceList) {
+            var newDeviceIds = deviceList.filter(function(device){
+                return devices[device.deviceId] == null;
+            }).map(function(device){
+                return device.deviceId;
             });
+            var removedDeviceIds = Object.keys(devices).filter(function(deviceId){
+                return deviceList.filter(function(device){ 
+                    return device.deviceId == deviceId
+                }).length == 0;
+            });
+
+            logger.log("%d new devices found", newDeviceIds.length);
+            logger.log("%d devices removed", removedDeviceIds.length);
+
+            //stop removed device
+            removedDeviceIds.forEach(function(deviceId){
+                removeDevice(deviceId);
+            });
+            //start new devices
+            deviceList.forEach(function(device) {
+                if(newDeviceIds.indexOf(device.deviceId) > -1) {
+                    docDb.getDevice(device.deviceId, function(deviceInfo) {
+                        createDevice(hostName, device.deviceId, device.key, deviceInfo);
+                    }); 
+                }
+            });
+
+            setTimeout(function(){
+                createDevicesFromTable(setting)
+            },20000);
         }
     });
 }
@@ -76,18 +102,23 @@ function createDevice(hostName, deviceId, key, info) {
     }
     
     var device = fork('./child.js', parameters, debug ? { execArgv: ['--debug=' + getRandomPort()] } : null);
-    devices.push(device);
+    devices[deviceId] = device;
     device.on('close', function (code) {
-        logger.log('child process exited with code ' + code);
+        logger.log('device %s stopped', deviceId);
     });
     device.on('message', (m) => {
         logger.log('got message:', m);
     });
 }
 
+function removeDevice(deviceId){
+    logger.log('stoping device %s', deviceId);
+    devices[deviceId].kill();
+    delete devices[deviceId];
+}
 function stopDevices(){
-    devices.forEach(function(device) {
-        device.kill();
+    Object.keys(devices).forEach(function(deviceId) {
+        removeDevice(deviceId);
     });
 }
 
