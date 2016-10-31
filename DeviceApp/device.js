@@ -92,11 +92,13 @@ Device.prototype.send = function(data) {
 
 Device.prototype.sendUpdateDevice = function(data) {
     if (this.info) {
+        this.initDeviceInfo();
         this.info.SystemProperties = null;
         this.info.Version = "1.0";
         this.info.ObjectType = "DeviceInfo";
         this.info.Commands = this.getCommands();
         var data = JSON.stringify(this.info);
+        this.logger.log("sending 'DeviceInfo' message");
         this.send(data);
     }
 };
@@ -109,8 +111,21 @@ Device.prototype.getCommands = function(data) {
         { "Name": "ChangeSetPointTemp", "Parameters": [{ "Name": "SetPointTemp", "Type": "double" }] }, 
         { "Name": "DiagnosticTelemetry", "Parameters": [{ "Name": "Active", "Type": "boolean" }] }, 
         { "Name": "ChangeDeviceState", "Parameters": [{ "Name": "DeviceState", "Type": "string" }] },
-        { "Name": "Test", "Parameters": [{ "Name": "TestParameter", "Type": "string" }] }
+        { "Name": "Test2", "Type": "Method", "Parameters": [{ "Name": "TestParameter", "Type": "string" }] }
     ];
+};
+Device.prototype.initDeviceInfo = function() {
+    if (this.info && this.info.DeviceProperties.HubEnabledState == null) {
+        var randomId = Math.floor(Math.random() * 10000); 
+        this.info.DeviceProperties.HubEnabledState = true;
+        this.info.DeviceProperties.Manufacturer = "Contoso Inc.";
+        this.info.DeviceProperties.ModelNumber = "MD-" + randomId;
+        this.info.DeviceProperties.SerialNumber = "SER" + randomId;
+        this.info.DeviceProperties.FirmwareVersion = "1." + randomId;
+        this.info.DeviceProperties.Platform = "Plat-" + randomId;
+        this.info.DeviceProperties.Processor = "i3-" + randomId;
+        this.info.DeviceProperties.InstalledRAM = randomId + " MB";
+    }
 };
 
 Device.prototype.run = function() {
