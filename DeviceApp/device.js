@@ -31,11 +31,27 @@ Device.prototype.onWriteLine = function(request, response) {
     var self = this;
     this.logger.log('writeLine: ' + JSON.stringify(request.payload));
 
-    response.send(200, 'Input was written to log.', function (err) {
+    this.sendMethodResponse(response, 200, 'Input was written to log.');   
+};
+
+Device.prototype.onTest = function(request, response) {
+    var self = this;
+    this.logger.log('test method: ' + JSON.stringify(request.payload));
+
+    if (request.payload && request.payload.TestParameter) {
+        this.sendMethodResponse(response, 200, { message: "OK" });
+    }
+    else {
+        this.sendMethodResponse(response, 500, { message: "Error: Invalid parameter" });
+    }
+};
+
+Device.prototype.sendMethodResponse = function(response, code, payload) {
+    response.send(code, payload, function (err) {
         if (err) {
             self.logger.error('An error ocurred when sending a method response:\n' + err.toString());
         } else {
-            self.logger.log('Response to method \'' + request.methodName + '\' sent successfully.');
+            self.logger.log('Response to method sent successfully.');
         }
     });
 };
@@ -94,6 +110,7 @@ Device.prototype.sendUpdateDevice = function(data) {
     if (this.info) {
         this.initDeviceInfo();
         this.info.SystemProperties = null;
+        this.info.CommandHistory = [];
         this.info.Version = "1.0";
         this.info.ObjectType = "DeviceInfo";
         this.info.Commands = this.getCommands();
@@ -111,7 +128,7 @@ Device.prototype.getCommands = function(data) {
         { "Name": "ChangeSetPointTemp", "Parameters": [{ "Name": "SetPointTemp", "Type": "double" }] }, 
         { "Name": "DiagnosticTelemetry", "Parameters": [{ "Name": "Active", "Type": "boolean" }] }, 
         { "Name": "ChangeDeviceState", "Parameters": [{ "Name": "DeviceState", "Type": "string" }] },
-        { "Name": "Test2", "Type": "Method", "Parameters": [{ "Name": "TestParameter", "Type": "string" }] }
+        { "Name": "Test", "DeliverType": "Method", "Parameters": [{ "Name": "TestParameter", "Type": "string" }] }
     ];
 };
 Device.prototype.initDeviceInfo = function() {
@@ -136,6 +153,7 @@ Device.prototype.run = function() {
         } else {
             self.logger.log('client opened');
 
+            self.client.onDeviceMethod('Test', self.onTest.bind(self));
             self.client.onDeviceMethod('writeLine', self.onWriteLine.bind(self));
             self.client.onDeviceMethod('firmwareUpdate', self.firmwareManager.onFirmwareUpdate.bind(self.firmwareManager));
             
