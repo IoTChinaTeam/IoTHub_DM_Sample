@@ -47,6 +47,7 @@ Device.prototype.onTest = function(request, response) {
 };
 
 Device.prototype.sendMethodResponse = function(response, code, payload) {
+    var self = this;
     response.send(code, payload, function (err) {
         if (err) {
             self.logger.error('An error ocurred when sending a method response:\n' + err.toString());
