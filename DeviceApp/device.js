@@ -128,7 +128,7 @@ Device.prototype.getCommands = function(data) {
         { "Name": "ChangeSetPointTemp", "Parameters": [{ "Name": "SetPointTemp", "Type": "double" }] }, 
         { "Name": "DiagnosticTelemetry", "Parameters": [{ "Name": "Active", "Type": "boolean" }] }, 
         { "Name": "ChangeDeviceState", "Parameters": [{ "Name": "DeviceState", "Type": "string" }] },
-        { "Name": "Test", "DeliverType": "Method", "Parameters": [{ "Name": "TestParameter", "Type": "string" }] }
+        { "Name": "Test", "DeliveryType": "Method", "Parameters": [{ "Name": "TestParameter", "Type": "string" }] }
     ];
 };
 Device.prototype.initDeviceInfo = function() {
