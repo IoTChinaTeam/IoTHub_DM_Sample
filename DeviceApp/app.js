@@ -69,8 +69,7 @@ function createDevicesFromTable(setting) {
                 }).length == 0;
             });
 
-            logger.log("%d new devices found", newDeviceIds.length);
-            logger.log("%d devices removed", removedDeviceIds.length);
+            logger.log("%d new devices found, %d devices removed", newDeviceIds.length, removedDeviceIds.length);
 
             //stop removed device
             removedDeviceIds.forEach(function(deviceId){
@@ -104,7 +103,15 @@ function createDevice(hostName, deviceId, key, info) {
     var device = fork('./child.js', parameters, debug ? { execArgv: ['--debug=' + getRandomPort()] } : null);
     devices[deviceId] = device;
     device.on('close', function (code) {
-        logger.log('device %s stopped', deviceId);
+        if (code == 1) {
+            logger.error('device %s crashed unexpectedly, restarting the device...', deviceId);
+            setImmediate(function(){
+                createDevice(hostName, deviceId, key, info);
+            });
+        }
+        else {
+            logger.log('device %s stopped, code: %d', deviceId, code);
+        }
     });
     device.on('message', (m) => {
         logger.log('got message:', m);
