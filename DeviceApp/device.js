@@ -76,16 +76,17 @@ Device.prototype.handleTwinChange = function(twin, desiredChange) {
         }
     });
 
-    this.logger.log("reporting changes: " + JSON.stringify(patch));
-                    
-    twin.properties.reported.update(patch, function (err) {
-        if (err) {
-            self.logger.error('could not update twin: ' + err.message);
-        } 
-        else {
-            self.logger.log('twin state reported');
-        }
-    });
+    if (Object.keys(patch).length > 0) {
+        this.logger.log("reporting changes: " + JSON.stringify(patch));
+        twin.properties.reported.update(patch, function (err) {
+            if (err) {
+                self.logger.error('could not update twin: ' + err.message);
+            } 
+            else {
+                self.logger.log('twin state reported');
+            }
+        });
+    }
 };
 
 Device.prototype.printResultFor = function(op) {
