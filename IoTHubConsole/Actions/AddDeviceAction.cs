@@ -11,7 +11,7 @@ namespace IoTHubConsole.Actions
         {
             var client = RegistryManager.CreateFromConnectionString(Settings.Default.ConnectionString);
 
-            foreach (var deviceId in args.DeviceIds)
+            foreach (var deviceId in args.Ids)
             {
                 await client.AddDeviceAsync(new Device(deviceId));
                 Console.WriteLine($"{deviceId} added");
@@ -25,7 +25,7 @@ namespace IoTHubConsole.Actions
                 }
             }
 
-            await IoTHubHelper.QueryDevicesByIds(client, args.DeviceIds);
+            await IoTHubHelper.QueryDevicesByIds(client, args.Ids);
         }
     }
 }

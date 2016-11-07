@@ -101,6 +101,7 @@
     <Compile Include="Actions\InvokeMethodAction.cs" />
     <Compile Include="Actions\QueryDevicesAction.cs" />
     <Compile Include="Actions\QueryJobsAction.cs" />
+    <Compile Include="Actions\QueryJobSummaryAction.cs" />
     <Compile Include="Actions\ScheduleDeviceMethodAction.cs" />
     <Compile Include="Actions\ScheduleTwinUpdateAction.cs" />
     <Compile Include="Actions\SendMessageAction.cs" />

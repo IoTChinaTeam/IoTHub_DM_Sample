@@ -17,6 +17,7 @@ namespace IoTHubConsole
         InvokeMethod,
         ScheduleDeviceMethod,
         QueryJobs,
+        QueryJobSummary,
         CancelJobs,
         SendMessage
     }
@@ -28,7 +29,7 @@ namespace IoTHubConsole
         public Action Action;
 
         [Argument(ArgumentType.Multiple, ShortName = "d")]
-        public string[] DeviceIds;
+        public string[] Ids;
 
         [Argument(ArgumentType.AtMostOnce, ShortName = "q")]
         public string QueryCondition;
@@ -119,6 +120,10 @@ namespace IoTHubConsole
 
                 case Action.QueryJobs:
                     await QueryJobsAction.Do(args);
+                    break;
+
+                case Action.QueryJobSummary:
+                    await QueryJobSummaryAction.Do(args);
                     break;
 
                 case Action.CancelJobs:

@@ -10,9 +10,9 @@ namespace IoTHubConsole.Actions
         {
             var client = RegistryManager.CreateFromConnectionString(Settings.Default.ConnectionString);
 
-            if (args.DeviceIds != null)
+            if (args.Ids != null)
             {
-                await IoTHubHelper.QueryDevicesByIds(client, args.DeviceIds);
+                await IoTHubHelper.QueryDevicesByIds(client, args.Ids);
             }
             else
             {

@@ -21,11 +21,11 @@ namespace IoTHubConsole.Actions
             var client = JobClient.CreateFromConnectionString(Settings.Default.ConnectionString);
 
             JobResponse job;
-            if (args.DeviceIds != null)
+            if (args.Ids != null)
             {
                 job = await client.ScheduleTwinUpdateAsync(
                     Guid.NewGuid().ToString(),
-                    args.DeviceIds,
+                    args.Ids,
                     twin,
                     startTime,
                     args.TimeoutInSeconds);

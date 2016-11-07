@@ -12,12 +12,12 @@ namespace IoTHubConsole.Actions
         {
             var client = RegistryManager.CreateFromConnectionString(Settings.Default.ConnectionString);
 
-            var deviceId = args.DeviceIds.Single();
+            var deviceId = args.Ids.Single();
 
-            var twin = await client.GetTwinAsync(deviceId);
+            var twin = new Twin(deviceId);
             twin.Set(args.KVPairs);
 
-            twin = await client.UpdateTwinAsync(deviceId, twin, twin.ETag);
+            twin = await client.UpdateTwinAsync(deviceId, twin, "*");
 
             IoTHubHelper.OutputDevice(twin);
             Console.WriteLine("1 device updated");

@@ -14,7 +14,7 @@ namespace IoTHubConsole.Actions
 
             var message = new Message(Encoding.UTF8.GetBytes(args.C2DMessage));
 
-            foreach (var deviceId in args.DeviceIds)
+            foreach (var deviceId in args.Ids)
             {
                 await client.SendAsync(deviceId, message);
 

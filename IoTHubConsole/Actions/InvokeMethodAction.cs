@@ -12,7 +12,7 @@ namespace IoTHubConsole.Actions
         {
             var client = ServiceClient.CreateFromConnectionString(Settings.Default.ConnectionString);
 
-            var deviceId = args.DeviceIds.Single();
+            var deviceId = args.Ids.Single();
             var method = new CloudToDeviceMethod(args.Names.Single());
             method.SetPayloadJson(args.Values.Single());
 
