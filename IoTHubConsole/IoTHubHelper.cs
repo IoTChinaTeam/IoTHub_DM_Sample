@@ -4,21 +4,35 @@ using System.Threading.Tasks;
 using IoTHubConsole.Properties;
 using Microsoft.Azure.Devices;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace IoTHubConsole
 {
     static class TwinExtension
     {
+        private const string nullStr = "$null";
+
         static public void Set(this Twin twin, Dictionary<string, string> values)
         {
             foreach (var pair in values)
             {
-                dynamic value = pair.Value == "null" ? null : pair.Value;
+                dynamic value = pair.Value == nullStr ? null : pair.Value;
 
                 int intValue;
                 if (int.TryParse(pair.Value, out intValue))
                 {
                     value = intValue;
+                }
+
+                try
+                {
+                    var root = JsonConvert.DeserializeObject(value) as JToken;
+                    TranslateNull(root);
+
+                    value = root;
+                }
+                catch
+                {
                 }
 
                 if (pair.Key.StartsWith("tags."))
@@ -29,6 +43,22 @@ namespace IoTHubConsole
                 else
                 {
                     twin.Properties.Desired[pair.Key] = value;
+                }
+            }
+        }
+
+        static private void TranslateNull(JToken root)
+        {
+            foreach (JProperty property in root.Children())
+            {
+                if (property.Value.ToString() == nullStr)
+                {
+                    property.Value = null;
+                }
+
+                if (property.Value != null)
+                {
+                    TranslateNull(property.Value);
                 }
             }
         }
