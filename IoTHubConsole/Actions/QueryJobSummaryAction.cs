@@ -29,7 +29,7 @@ namespace IoTHubConsole.Actions
 
     class QueryJobSummaryCondition
     {
-        public DeviceJobType? Type = null;
-        public DeviceJobStatus? Status = null;
+        public JobType? Type = null;
+        public JobStatus? Status = null;
     }
 }
