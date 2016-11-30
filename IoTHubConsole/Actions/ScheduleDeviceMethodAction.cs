@@ -17,8 +17,14 @@ namespace IoTHubConsole.Actions
 
             var startTime = DateTime.UtcNow + TimeSpan.FromSeconds(args.StartOffsetInSeconds);
 
+            var jobId = args.JobId;
+            if(string.IsNullOrEmpty(jobId))
+            {
+                jobId = Guid.NewGuid().ToString();
+            }
+
             JobResponse job = await client.ScheduleDeviceMethodAsync(
-                Guid.NewGuid().ToString(),
+                jobId,
                 args.QueryCondition,
                 method,
                 startTime,

@@ -49,6 +49,9 @@ namespace IoTHubConsole
         [Argument(ArgumentType.AtMostOnce, ShortName = "m")]
         public string C2DMessage;
 
+        [Argument(ArgumentType.AtMostOnce, ShortName = "i", HelpText = "The job id")]
+        public string JobId;
+
         public Dictionary<string, string> KVPairs
         {
             get
