@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using IoTHubConsole.Properties;
 using Microsoft.Azure.Devices;
@@ -68,15 +69,28 @@ namespace IoTHubConsole
     {
         static public async Task QueryDevicesByCondition(RegistryManager client, string condition)
         {
+            bool twinResult = new Regex(@"^SELECT\s+\*").Match(condition).Success;
+
             var result = client.CreateQuery(condition);
             while (result.HasMoreResults)
             {
-                var twins = await result.GetNextAsTwinAsync();
-
-                foreach (var twin in twins)
+                if (twinResult)
                 {
-                    var device = await client.GetDeviceAsync(twin.DeviceId);
-                    OutputDevice(twin, device);
+                    var twins = await result.GetNextAsTwinAsync();
+
+                    foreach (var twin in twins)
+                    {
+                        var device = await client.GetDeviceAsync(twin.DeviceId);
+                        OutputDevice(twin, device);
+                    }
+                }
+                else
+                {
+                    var rawStrings = await result.GetNextAsJsonAsync();
+                    foreach (var json in rawStrings)
+                    {
+                        Console.WriteLine(json);
+                    }
                 }
             }
         }
