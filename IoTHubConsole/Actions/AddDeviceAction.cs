@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using IoTHubConsole.Properties;
 using Microsoft.Azure.Devices;
+using Microsoft.Azure.Devices.Shared;
 
 namespace IoTHubConsole.Actions
 {

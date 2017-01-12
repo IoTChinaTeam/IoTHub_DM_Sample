@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using IoTHubConsole.Properties;
 using Microsoft.Azure.Devices;
+using Microsoft.Azure.Devices.Shared;
 
 namespace IoTHubConsole.Actions
 {
@@ -12,9 +13,6 @@ namespace IoTHubConsole.Actions
             var twin = new Twin();
             twin.ETag = "*";
             twin.Set(args.KVPairs);
-
-            // Workaround
-            twin.Tags["dummy"] = string.Empty;
 
             var startTime = DateTime.UtcNow + TimeSpan.FromSeconds(args.StartOffsetInSeconds);
 
