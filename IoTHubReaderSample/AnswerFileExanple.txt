@@ -1,0 +1,1 @@
+/c:Endpoint=<endPoint>;SharedAccessKeyName=<policy>;SharedAccessKey=<key> /e:<path> /p:<partition> /g:<group>
