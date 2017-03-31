@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 namespace IoTHubReaderSample
@@ -27,8 +26,8 @@ namespace IoTHubReaderSample
         public int TotalMessages { get; private set; }
         public double AvgDeviceToIoTHubDelay { get; private set; }
         public double AvgE2EDelay { get; private set; }
+        public string SampleEventSender { get; private set; }
         public string SampleEvent { get; private set; }
-
         private HashSet<string> devices = new HashSet<string>();
 
         public void Reset()
@@ -37,10 +36,11 @@ namespace IoTHubReaderSample
             TotalMessages = 0;
             AvgDeviceToIoTHubDelay = double.NaN;
             AvgE2EDelay = double.NaN;
+            SampleEventSender = string.Empty;
             SampleEvent = string.Empty;
         }
 
-        public void Push(EventData eventData, string interestringDevice)
+        public void Push(EventData eventData, string interestingDevice)
         {
             var receiveTimeUtc = DateTime.UtcNow;
             TotalMessages++;
@@ -56,8 +56,9 @@ namespace IoTHubReaderSample
 
             var bytes = eventData.GetBytes();
             var content = Encoding.UTF8.GetString(bytes);
-            if (interestringDevice == null || interestringDevice == deviceId)
+            if (interestingDevice == null || interestingDevice == deviceId)
             {
+                SampleEventSender = deviceId;
                 SampleEvent = content;
             }
 

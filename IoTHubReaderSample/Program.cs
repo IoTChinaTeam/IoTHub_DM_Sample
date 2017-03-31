@@ -15,7 +15,7 @@ namespace IoTHubReaderSample
         [Argument(ArgumentType.Required, ShortName = "e", HelpText = "Event Hub-compatible name")]
         public string Path;
 
-        [Argument(ArgumentType.AtMostOnce, ShortName = "p", DefaultValue = "0", HelpText = "The ID of the interestring partition")]
+        [Argument(ArgumentType.AtMostOnce, ShortName = "p", DefaultValue = "0", HelpText = "The ID of the interesting partition")]
         public string PartitionId;
 
         [Argument(ArgumentType.AtMostOnce, ShortName = "g", DefaultValue = "$Default", HelpText = "Consumer group")]
@@ -24,7 +24,7 @@ namespace IoTHubReaderSample
         [Argument(ArgumentType.AtMostOnce, ShortName = "o", DefaultValue = 60, HelpText = "The starting offset for receiving messages")]
         public int OffsetInMinutes;
 
-        [Argument(ArgumentType.AtMostOnce, ShortName = "d", HelpText = "The ID of the interestring device")]
+        [Argument(ArgumentType.AtMostOnce, ShortName = "d", HelpText = "The ID of the interesting device")]
         public string DeviceID;
 
         [Argument(ArgumentType.AtMostOnce, ShortName = "a", DefaultValue = false, HelpText = "Use async task in event process")]
@@ -59,12 +59,12 @@ namespace IoTHubReaderSample
                 Thread.Sleep(outputInterval);
 
                 Console.WriteLine($"{DateTime.Now}, running for {stopwatch.Elapsed}");
-                Console.WriteLine($"PartitionId:               {settings.PartitionId}");
-                Console.WriteLine($"Total # of messages:       {indicators.TotalMessages} ({(int)(indicators.TotalMessages / stopwatch.Elapsed.TotalMinutes)} messages per minute), Async event process = {settings.AsyncEventProcess}");
-                Console.WriteLine($"Total # of devices:        {indicators.TotalDevices}");
-                Console.WriteLine($"Avg. deviceToIoTHub delay: {(double.IsNaN(indicators.AvgDeviceToIoTHubDelay) ? "N/A" : TimeSpan.FromMilliseconds(indicators.AvgDeviceToIoTHubDelay).ToString())}");
-                Console.WriteLine($"Avg. E2E delay:            {(double.IsNaN(indicators.AvgE2EDelay) ? "N/A" : TimeSpan.FromMilliseconds(indicators.AvgE2EDelay).ToString())}");
-                Console.WriteLine($"Sample event content:      {indicators.SampleEvent}");
+                Console.WriteLine($"PartitionId:              {settings.PartitionId}");
+                Console.WriteLine($"Total # of messages:      {indicators.TotalMessages} ({(int)(indicators.TotalMessages / stopwatch.Elapsed.TotalMinutes)} messages per minute), Async event process = {settings.AsyncEventProcess}");
+                Console.WriteLine($"Total # of devices:       {indicators.TotalDevices}");
+                Console.WriteLine($"Avg. device-IoTHub delay: {(double.IsNaN(indicators.AvgDeviceToIoTHubDelay) ? "N/A" : TimeSpan.FromMilliseconds(indicators.AvgDeviceToIoTHubDelay).ToString())}");
+                Console.WriteLine($"Avg. E2E delay:           {(double.IsNaN(indicators.AvgE2EDelay) ? "N/A" : TimeSpan.FromMilliseconds(indicators.AvgE2EDelay).ToString())}");
+                Console.WriteLine($"Sample event content:     {indicators.SampleEvent} from [{indicators.SampleEventSender}]");
                 Console.WriteLine();
             }
         }
