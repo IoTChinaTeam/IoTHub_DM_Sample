@@ -14,8 +14,8 @@ namespace DeviceLoad
     class Program
     {
         static Setting setting;
-        static ResultUpdater resultUpdater;
-        static MessagePereadController messagePereadController;
+        //static ResultUpdater resultUpdater;
+        static MessagePereadController messagePereadController = null;
 
         // Example:
         // DeviceLoad.exe {OutputStorageConnectionString} {DeviceClientEndpoint} {DevicePerVm} {MessagePerMin} {DurationInMin} {BatchJobId} {DeviceIdPrefix} [MessageFormat]
@@ -37,7 +37,8 @@ namespace DeviceLoad
             SendMessages(devices).Wait();
             //resultUpdater.Finish().Wait();
 
-            RemoveDevices(devices).Wait();
+            // No need to delete devices
+            //RemoveDevices(devices).Wait();
         }
 
         static async Task<List<Device>> CreateDevices()
@@ -150,12 +151,13 @@ namespace DeviceLoad
 
         static async Task SendMessages(IEnumerable<Device> devices)
         {
-            Console.WriteLine($"Start to send msg.");
+            Console.WriteLine($"{DateTime.Now.ToString("T")}: Start to send msg.");
 
             var tasks = new List<Task>();
             foreach (var device in devices)
             {
                 tasks.Add(DeviceToCloudMessage(device.Id, DeviceConnectionString(setting.IoTHubHostName, device)));
+                await Task.Delay(1000);
             }
 
             await Task.WhenAll(tasks.ToArray());
@@ -163,7 +165,7 @@ namespace DeviceLoad
 
         static async Task DeviceToCloudMessage(string deviceId, string deviceConnectionString)
         {
-            Console.WriteLine($"Start to send msg for {deviceId}");
+            Console.WriteLine($"{DateTime.Now.ToString("T")}:Start to send msg for {deviceId}");
 
             var deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt);
 
@@ -220,9 +222,9 @@ namespace DeviceLoad
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"{deviceId}: Send message failed: {ex.Message}");
+                            Console.WriteLine($"{DateTime.Now.ToString("T")}: {deviceId}: Send message failed: {ex.Message}");
                             deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt);
-                            await Task.Delay(200);
+                            await Task.Delay(1000);
                             continue;
                         }
 
