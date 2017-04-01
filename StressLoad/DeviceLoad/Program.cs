@@ -157,7 +157,7 @@ namespace DeviceLoad
             foreach (var device in devices)
             {
                 tasks.Add(DeviceToCloudMessage(device.Id, DeviceConnectionString(setting.IoTHubHostName, device)));
-                await Task.Delay(1000);
+                await Task.Delay(100);
             }
 
             await Task.WhenAll(tasks.ToArray());
@@ -219,12 +219,18 @@ namespace DeviceLoad
                         try
                         {
                             await deviceClient.SendEventAsync(message);
+
+                            if (count % 10 == 0)
+                            {
+                                Console.WriteLine($"{DateTime.Now.ToString("T")}:{deviceId} > Sending {count} message");
+                            }
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"{DateTime.Now.ToString("T")}: {deviceId}: Send message failed: {ex.Message}");
-                            deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt);
+                            Console.WriteLine($"{DateTime.Now.ToString("T")}: {deviceId}: Send message failed: {ex.Message}:{ex.StackTrace}");
                             await Task.Delay(1000);
+
+                            deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt);
                             continue;
                         }
 
@@ -232,8 +238,7 @@ namespace DeviceLoad
                         break;
                     }
 
-                    //resultUpdater.ReportMessages(deviceId, count);
-                    //Console.WriteLine("{0}-{1} > Sending message: {2}", deviceId, DateTime.Now, messageString);
+                    //resultUpdater.ReportMessages(deviceId, count);                    
                 }
 
                 // add 200ms 
