@@ -30,14 +30,13 @@ namespace DeviceLoad
             }
 
             ServicePointManager.DefaultConnectionLimit = 200;
-            resultUpdater = new ResultUpdater(setting.OutputStorageConnectionString, setting.BatchJobId);
+            //resultUpdater = new ResultUpdater(setting.OutputStorageConnectionString, setting.BatchJobId);
 
             var devices = CreateDevices().Result;
 
             SendMessages(devices).Wait();
-            resultUpdater.Finish().Wait();
+            //resultUpdater.Finish().Wait();
 
-            // Don't remove devices
             RemoveDevices(devices).Wait();
         }
 
@@ -119,11 +118,16 @@ namespace DeviceLoad
 
         private static async Task RemoveDevices(List<Device> devices)
         {
-            while( devices.Count > 0)
+            var sw = Stopwatch.StartNew();
+
+            long total = devices.Count;
+            while ( devices.Count > 0)
             {
                 var length = devices.Count < 100 ? devices.Count : 100;
                 await setting.IotHubManager.RemoveDevices2Async(devices.GetRange(0, length));
                 devices.RemoveRange(0, length);
+
+                Console.WriteLine($"{sw.Elapsed.TotalSeconds}:Removed {length}/{total} devices.");
             }
         }
 
@@ -174,54 +178,64 @@ namespace DeviceLoad
             long lastCheckpoint;
             long interval = 60000 / setting.MessagePerMin;    // in miliseconds
 
+            long expectedNumofMessage = setting.MessagePerMin * setting.DurationInMin;
+
             long count = 0;
             Random rnd = new Random();
             while (stopWatch.Elapsed.TotalMinutes <= setting.DurationInMin)
             {
                 lastCheckpoint = stopWatch.ElapsedMilliseconds;
 
-                try
+
+                currentDataValue = rnd.Next(-20, 20);
+                string messageString = string.Empty;
+                if (setting.ReadBlobSwitch)
                 {
-                    currentDataValue = rnd.Next(-20, 20);
-                    string messageString = string.Empty;
-                    if (setting.ReadBlobSwitch)
+                    IEnumerable<string> messages =
+                        messagePereadController.GetMessages(deviceId, DateTime.Now);
+                    if (messages != null)
                     {
-                        IEnumerable<string> messages =
-                            messagePereadController.GetMessages(deviceId, DateTime.Now);
-                        if (messages != null)
+                        foreach (var message in messages)
                         {
-                            foreach (var message in messages)
-                            {
-                                await deviceClient.SendEventAsync(new Microsoft.Azure.Devices.Client.Message(Encoding.ASCII.GetBytes(message)));
-                                messageString = message;
-                                count++;
-                            }
+                            await deviceClient.SendEventAsync(new Microsoft.Azure.Devices.Client.Message(Encoding.ASCII.GetBytes(message)));
+                            messageString = message;
+                            count++;
                         }
                     }
-                    else
-                    {
-                        messageString = messageTemplate;
-                        messageString = messageString.Replace("%deviceId%", deviceId);
-                        messageString = messageString.Replace("%value%", currentDataValue.ToString());
-                        messageString = messageString.Replace("%datetime%", DateTime.UtcNow.ToString());
+                }
+                else
+                {
+                    messageString = messageTemplate;
+                    messageString = messageString.Replace("%deviceId%", deviceId);
+                    messageString = messageString.Replace("%value%", currentDataValue.ToString());
+                    messageString = messageString.Replace("%datetime%", DateTime.UtcNow.ToString());
 
-                        var message = new Microsoft.Azure.Devices.Client.Message(Encoding.ASCII.GetBytes(messageString));
-                        await deviceClient.SendEventAsync(message);
+                    var message = new Microsoft.Azure.Devices.Client.Message(Encoding.ASCII.GetBytes(messageString));
+
+                    for (int i = 0; i < 10; i++)
+                    {
+                        try
+                        {
+                            await deviceClient.SendEventAsync(message);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"{deviceId}: Send message failed: {ex.Message}");
+                            deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt);
+                            await Task.Delay(200);
+                            continue;
+                        }
+
                         count++;
+                        break;
                     }
 
-                    resultUpdater.ReportMessages(deviceId, count);
+                    //resultUpdater.ReportMessages(deviceId, count);
                     //Console.WriteLine("{0}-{1} > Sending message: {2}", deviceId, DateTime.Now, messageString);
                 }
-                catch(Exception ex)
-                {
-                    Console.WriteLine($"{deviceId}: Send message failed: {ex.Message}");
-                    deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt);
-                    await Task.Delay(200);
-                    continue;
-                }
 
-                var delayTime = interval - (stopWatch.ElapsedMilliseconds - lastCheckpoint);
+                // add 200ms 
+                var delayTime = interval - (stopWatch.ElapsedMilliseconds - lastCheckpoint) - 200;
                 if (delayTime > 0)
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(delayTime));
@@ -230,7 +244,7 @@ namespace DeviceLoad
             if (setting.ReadBlobSwitch)
                 messagePereadController.StopTransport();
 
-            Console.WriteLine("{0}-{1} > Finish sending {2} message for {3}", deviceId, DateTime.Now, count, deviceId);
+            Console.WriteLine("{0}: {1} - Finish sending {2} message (expected: {3})", stopWatch.Elapsed.ToString(@"mm\:ss"), deviceId, count, expectedNumofMessage);
         }
 
         static string DeviceConnectionString(string ioTHubHostName, Device device)

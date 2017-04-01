@@ -54,11 +54,15 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
 
                 try
                 {
+                    Console.WriteLine($"{DateTime.Now.ToString("T")} - Create Pool");
                     await CreatePoolIfNotExistAsync(batchClient, StorageAccount, testJob);
+
+                    Console.WriteLine($"{DateTime.Now.ToString("T")} - Submit job");
                     await SubmitJobIfNotExistAsync(batchClient, StorageAccount, testJob);
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
+                    Console.WriteLine($"{DateTime.Now.ToString("T")} - delete test due to {ex.Message}");
                     await batchClient.DeleteTest(testJob);
                     testJob.Status = TestJobStatus.Failed;
                 }
@@ -145,6 +149,8 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
 
         public async Task<bool> DeleteTest(BatchClient client, TestJob testJob)
         {
+            Console.WriteLine($"{DateTime.Now.ToString("T")} - Waiting job to finish");
+
             var job = await client.JobOperations.GetJobAsync(testJob.BatchJobId);
             while (true)
             {
@@ -157,6 +163,8 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
 
             //var resource = job.ListTasks().First().ResourceFiles.First();
             //var container = new Uri(resource.BlobSource).AbsolutePath.Trim('/').Split('/')[0];
+
+            Console.WriteLine($"{DateTime.Now.ToString("T")} - Delete job from batch");
 
             await DeleteContainersAsync(StorageAccount);
             await client.JobOperations.DeleteJobAsync(testJob.BatchJobId);
@@ -266,6 +274,7 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
 
             var tasksToRun = new List<CloudTask>();
 
+            Console.WriteLine($"{DateTime.Now.ToString("T")} - Upload assemblies for batch");
             var resourceFiles = await UploadFilesToContainerAsync(cloudStorageAccount);
 
             var jobsPerVm = 4 * (int)Math.Pow(2, (int)testJob.SizeOfVM); 
