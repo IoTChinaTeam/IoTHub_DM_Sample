@@ -54,7 +54,7 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
 
                 try
                 {
-                    Console.WriteLine($"{DateTime.Now.ToString("T")} - Create Pool");
+                    Console.WriteLine($"{DateTime.Now.ToString("T")} - Create Pool ({testJob.NumofVm} core)");
                     await CreatePoolIfNotExistAsync(batchClient, StorageAccount, testJob);
 
                     Console.WriteLine($"{DateTime.Now.ToString("T")} - Submit job");
@@ -149,15 +149,17 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
 
         public async Task<bool> DeleteTest(BatchClient client, TestJob testJob)
         {
-            Console.WriteLine($"{DateTime.Now.ToString("T")} - Waiting job to finish");
-
             var job = await client.JobOperations.GetJobAsync(testJob.BatchJobId);
+
+            Console.WriteLine($"{DateTime.Now.ToString("T")} - Waiting job to finish: {job.ListTasks().Count()} tasks ");
             while (true)
             {
-                if (job.ListTasks().Count(m => m.State == TaskState.Completed)== job.ListTasks().Count())
+                var list = job.ListTasks();
+                if (list.Count(m => m.State == TaskState.Completed)== list.Count())
                 {
                     break;
-                }
+                }               
+
                 await Task.Delay(1000);
             }
 
