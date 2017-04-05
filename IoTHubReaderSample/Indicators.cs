@@ -24,18 +24,19 @@ namespace IoTHubReaderSample
         }
 
         public int TotalMessages { get; private set; }
-        public double AvgDeviceToIoTHubDelay { get; private set; }
-        public double AvgE2EDelay { get; private set; }
+        public TimeSeriesContianer DeviceToIoTHubDelay { get; private set; } = new TimeSeriesContianer(TimeSpan.FromMinutes(1), 15);
+        public TimeSeriesContianer E2EDelay { get; private set; } = new TimeSeriesContianer(TimeSpan.FromMinutes(1), 15);
         public string SampleEventSender { get; private set; }
         public string SampleEvent { get; private set; }
+
         private HashSet<string> devices = new HashSet<string>();
 
         public void Reset()
         {
             devices.Clear();
             TotalMessages = 0;
-            AvgDeviceToIoTHubDelay = double.NaN;
-            AvgE2EDelay = double.NaN;
+            DeviceToIoTHubDelay.Reset();
+            E2EDelay.Reset();
             SampleEventSender = string.Empty;
             SampleEvent = string.Empty;
         }
@@ -71,23 +72,8 @@ namespace IoTHubReaderSample
                 var deviceToIoTHubDelay = (enqueueTimeUtc - sendTimeUtc).TotalMilliseconds;
                 var e2eDelay = (receiveTimeUtc - sendTimeUtc).TotalMilliseconds;
 
-                if (double.IsNaN(AvgDeviceToIoTHubDelay))
-                {
-                    AvgDeviceToIoTHubDelay = deviceToIoTHubDelay;
-                }
-                else
-                {
-                    AvgDeviceToIoTHubDelay = (AvgDeviceToIoTHubDelay * deviceToIoTHubDelayWeight + deviceToIoTHubDelay) / (deviceToIoTHubDelayWeight + 1);
-                }
-
-                if (double.IsNaN(AvgE2EDelay))
-                {
-                    AvgE2EDelay = e2eDelay;
-                }
-                else
-                {
-                    AvgE2EDelay = (AvgE2EDelay * e2eDelayWeight + e2eDelay) / (e2eDelayWeight + 1);
-                }
+                DeviceToIoTHubDelay.Push(receiveTimeUtc, deviceToIoTHubDelay);
+                E2EDelay.Push(receiveTimeUtc, e2eDelay);
             }
         }
     }

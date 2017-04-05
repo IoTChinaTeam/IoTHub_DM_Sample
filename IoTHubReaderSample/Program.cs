@@ -113,10 +113,11 @@ namespace IoTHubReaderSample
 
                 Console.WriteLine($"{DateTime.Now}, running for {stopwatch.Elapsed}");
                 Console.WriteLine($"PartitionId:              {settings.PartitionId}");
-                Console.WriteLine($"Total # of messages:      {indicators.TotalMessages} ({(int)(indicators.TotalMessages / stopwatch.Elapsed.TotalMinutes)} messages per minute), Async event process = {settings.AsyncEventProcess}");
+                Console.WriteLine($"Total # of messages:      {indicators.TotalMessages}, in last minute: {indicators.DeviceToIoTHubDelay.Count}");
+                Console.WriteLine($"Overall throughput:       {(int)(indicators.TotalMessages / stopwatch.Elapsed.TotalMinutes)} messages/min., Async event process = {settings.AsyncEventProcess}");
                 Console.WriteLine($"Total # of devices:       {indicators.TotalDevices}");
-                Console.WriteLine($"Avg. device-IoTHub delay: {(double.IsNaN(indicators.AvgDeviceToIoTHubDelay) ? "N/A" : TimeSpan.FromMilliseconds(indicators.AvgDeviceToIoTHubDelay).ToString())}");
-                Console.WriteLine($"Avg. E2E delay:           {(double.IsNaN(indicators.AvgE2EDelay) ? "N/A" : TimeSpan.FromMilliseconds(indicators.AvgE2EDelay).ToString())}");
+                Console.WriteLine($"Avg. device-IoTHub delay: {FormatDelay(indicators.DeviceToIoTHubDelay.StreamAvg)}, in last minute: {FormatDelay(indicators.DeviceToIoTHubDelay.WindowAvg)}");
+                Console.WriteLine($"Avg. E2E delay:           {FormatDelay(indicators.E2EDelay.StreamAvg)}, in last minute: {FormatDelay(indicators.E2EDelay.WindowAvg)}");
                 Console.WriteLine($"Sample event content:     {indicators.SampleEvent} from [{indicators.SampleEventSender}]");
                 Console.WriteLine();
             }
@@ -157,6 +158,11 @@ namespace IoTHubReaderSample
                     Debug.WriteLine($"Exception raised: {ex}");
                 }
             }
+        }
+
+        private static string FormatDelay(double value)
+        {
+            return double.IsNaN(value) ? "N/A" : TimeSpan.FromMilliseconds(value).ToString();
         }
     }
 }
