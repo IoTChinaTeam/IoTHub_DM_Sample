@@ -167,7 +167,7 @@ namespace DeviceLoad
         {
             Console.WriteLine($"{DateTime.Now.ToString("T")}:Start to send msg for {deviceId}");
 
-            var deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt);
+            var deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Amqp);
 
             var currentDataValue = 0;
             var messageTemplate = setting.Message;
@@ -230,7 +230,7 @@ namespace DeviceLoad
                             Console.WriteLine($"{DateTime.Now.ToString("T")}: {deviceId}: Send message failed: {ex.Message}:{ex.StackTrace}");
                             await Task.Delay(1000);
 
-                            deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt);
+                            deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Amqp);
                             continue;
                         }
 
