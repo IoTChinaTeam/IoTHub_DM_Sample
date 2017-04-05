@@ -56,7 +56,7 @@ namespace IoTHubReaderSample
 
             var bytes = eventData.GetBytes();
             var content = Encoding.UTF8.GetString(bytes);
-            if (interestingDevice == null || interestingDevice == deviceId)
+            if (string.IsNullOrWhiteSpace(interestingDevice) || interestingDevice == deviceId)
             {
                 SampleEventSender = deviceId;
                 SampleEvent = content;

@@ -1,6 +1,7 @@
 ﻿using CommandLine;
 using Microsoft.ServiceBus.Messaging;
 using System;
+using System.Configuration;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,6 +30,55 @@ namespace IoTHubReaderSample
 
         [Argument(ArgumentType.AtMostOnce, ShortName = "a", DefaultValue = false, HelpText = "Use async task in event process")]
         public bool AsyncEventProcess;
+
+        public bool ReadFromSettings()
+        {
+            string value;
+
+            value = ConfigurationManager.AppSettings["ConnectionString"];
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+            ConnectionString = value;
+
+            value = ConfigurationManager.AppSettings["Path"];
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+            Path = value;
+
+            value = ConfigurationManager.AppSettings["PartitionId"];
+            PartitionId = string.IsNullOrWhiteSpace(value) ? "0" : value;
+
+            value = ConfigurationManager.AppSettings["GroupName"];
+            GroupName = string.IsNullOrWhiteSpace(value) ? "$Default" : value;
+
+            value = ConfigurationManager.AppSettings["Offset"];
+            try
+            {
+                OffsetInMinutes = (int)TimeSpan.Parse(value).TotalMinutes;
+            }
+            catch
+            {
+                OffsetInMinutes = 60;
+            }
+
+            DeviceID = ConfigurationManager.AppSettings["DeviceID"];
+
+            value = ConfigurationManager.AppSettings["AsyncEventProcess"];
+            try
+            {
+                AsyncEventProcess = bool.Parse(value);
+            }
+            catch
+            {
+                AsyncEventProcess = false;
+            }
+
+            return true;
+        }
     }
 
     class Program
@@ -41,9 +91,12 @@ namespace IoTHubReaderSample
             Console.WriteLine("IoTHub reader sample");
 
             var parsedArguments = new CommandArguments();
-            if (!Parser.ParseArgumentsWithUsage(args, parsedArguments))
+            if (!parsedArguments.ReadFromSettings())
             {
-                return;
+                if (!Parser.ParseArgumentsWithUsage(args, parsedArguments))
+                {
+                    return;
+                }
             }
 
             var settings = new Settings(parsedArguments);
