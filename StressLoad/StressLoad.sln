@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeviceLoad", "DeviceLoad\DeviceLoad.csproj", "{38490692-34C8-4C80-9981-30A7A09310A8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StressLoad", "StressLoad\StressLoad.csproj", "{26C7092D-9AA0-45A3-8282-8682990B3EFA}"
+	ProjectSection(ProjectDependencies) = postProject
+		{38490692-34C8-4C80-9981-30A7A09310A8} = {38490692-34C8-4C80-9981-30A7A09310A8}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

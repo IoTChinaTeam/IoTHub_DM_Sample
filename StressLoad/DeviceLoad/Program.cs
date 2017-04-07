@@ -13,9 +13,9 @@ namespace DeviceLoad
 {
     class Program
     {
-        static Setting setting;
-        //static ResultUpdater resultUpdater;
-        static MessagePereadController messagePereadController = null;
+        private const Microsoft.Azure.Devices.Client.TransportType transport = Microsoft.Azure.Devices.Client.TransportType.Mqtt;
+        private static Setting setting;
+        private static Stopwatch wallclock;
 
         // Example:
         // DeviceLoad.exe {OutputStorageConnectionString} {DeviceClientEndpoint} {DevicePerVm} {MessagePerMin} {DurationInMin} {BatchJobId} {DeviceIdPrefix} [MessageFormat]
@@ -30,20 +30,14 @@ namespace DeviceLoad
             }
 
             ServicePointManager.DefaultConnectionLimit = 200;
-            //resultUpdater = new ResultUpdater(setting.OutputStorageConnectionString, setting.BatchJobId);
 
+            wallclock = Stopwatch.StartNew();
             var devices = CreateDevices().Result;
-
             SendMessages(devices).Wait();
-            //resultUpdater.Finish().Wait();
-
-            // No need to delete devices
-            //RemoveDevices(devices).Wait();
         }
 
         static async Task<List<Device>> CreateDevices()
         {
-            var sw = Stopwatch.StartNew();
             var createdDevices = new List<Device>();
 
             var devices = new List<Device>();
@@ -54,11 +48,9 @@ namespace DeviceLoad
                 if (devices.Count == 100)
                 {
                     createdDevices.AddRange(devices);
-
                     await AddDevices(devices);
                     devices.Clear();
-
-                    Console.WriteLine($"{sw.Elapsed.TotalSeconds}:Created {createdDevices.Count} devices.");
+                    Console.WriteLine($"{wallclock.Elapsed}: Created {createdDevices.Count} devices.");
                 }
             }
 
@@ -67,11 +59,10 @@ namespace DeviceLoad
                 createdDevices.AddRange(devices);
                 await AddDevices(devices);
                 devices.Clear();
+                Console.WriteLine($"{wallclock.Elapsed}: Created {createdDevices.Count} devices.");
             }
 
-            Console.WriteLine($"{sw.Elapsed.TotalSeconds}:Created {createdDevices.Count} devices.");
             return createdDevices;
-            //return devices.Select(d => Tuple.Create<string, string>(d.Id, DeviceConnectionString(setting.IoTHubHostName, d)));
         }
 
         private static async Task AddDevices(List<Device> devices)
@@ -94,7 +85,7 @@ namespace DeviceLoad
                 {
                     Console.WriteLine($"Create failed: {ex.Message}.");
                 }
-                
+
                 Task.Delay(100).Wait();
 
             };
@@ -117,58 +108,69 @@ namespace DeviceLoad
             return device;
         }
 
-        private static async Task RemoveDevices(List<Device> devices)
-        {
-            var sw = Stopwatch.StartNew();
-
-            long total = devices.Count;
-            while ( devices.Count > 0)
-            {
-                var length = devices.Count < 100 ? devices.Count : 100;
-                await setting.IotHubManager.RemoveDevices2Async(devices.GetRange(0, length));
-                devices.RemoveRange(0, length);
-
-                Console.WriteLine($"{sw.Elapsed.TotalSeconds}:Removed {length}/{total} devices.");
-            }
-        }
-
         private static string DeviceIdGenerate(int index)
         {
             return setting.DeviceIdPrefix + "-" + index.ToString().PadLeft(10, '0');
         }
 
-        static async Task RemoveDevices(IEnumerable<Tuple<string, string>> devices)
+        static async Task SendMessages(List<Device> devices)
         {
-            var tasks = new List<Task>();
-            foreach (var device in devices)
+            using (var cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total"))
+            using (var ramCounter = new PerformanceCounter("Memory", "Available MBytes"))
             {
-                tasks.Add(setting.IotHubManager.RemoveDeviceAsync(device.Item1));
+                Console.WriteLine($"Opening clients for {devices.Count()} devices");
+                var clients = await OpenClientsAsync(devices, cpuCounter, ramCounter);
+
+                var tasks = clients.Select(pair => DeviceToCloudMessage(pair.Key.Id, DeviceConnectionString(setting.IoTHubHostName, pair.Key), pair.Value)).ToList();
+                var wrapperTask = Task.WhenAll(tasks);
+
+                do
+                {
+                    Console.WriteLine($"{wallclock.Elapsed}: {tasks.Count(t => !t.IsCompleted)} devices are running. Resource usage: CPU usage {cpuCounter.NextValue()}%, available memory {ramCounter.NextValue()}MB");
+                }
+                while (!wrapperTask.Wait(TimeSpan.FromSeconds(5)));
             }
-            await Task.WhenAll(tasks.ToArray());
-            Console.WriteLine(string.Format("{0} devices removed.", devices.Count()));
         }
 
-
-        static async Task SendMessages(IEnumerable<Device> devices)
+        private static async Task<IEnumerable<KeyValuePair<Device, DeviceClient>>> OpenClientsAsync(IEnumerable<Device> devices, PerformanceCounter cpuCounter, PerformanceCounter ramCounter)
         {
-            Console.WriteLine($"{DateTime.Now.ToString("T")}: Start to send msg.");
+            var clients = new Dictionary<Device, DeviceClient>();
 
-            var tasks = new List<Task>();
             foreach (var device in devices)
             {
-                tasks.Add(DeviceToCloudMessage(device.Id, DeviceConnectionString(setting.IoTHubHostName, device)));
-                await Task.Delay(100);
+                var client = await OpenDeviceClientAsync(device);
+                clients.Add(device, client);
+
+                if (clients.Count() % 100 == 0)
+                {
+                    Console.WriteLine($"{wallclock.Elapsed}: {clients.Count} devices were opened. Resource usage: CPU usage {cpuCounter.NextValue()}%, available memory {ramCounter.NextValue()}MB");
+                }
             }
 
-            await Task.WhenAll(tasks.ToArray());
+            return clients.Where(pair => pair.Value != null);
         }
 
-        static async Task DeviceToCloudMessage(string deviceId, string deviceConnectionString)
+        private static async Task<DeviceClient> OpenDeviceClientAsync(Device device)
         {
-            Console.WriteLine($"{DateTime.Now.ToString("T")}:Start to send msg for {deviceId}");
+            var connectionString = DeviceConnectionString(setting.IoTHubHostName, device);
+            var client = DeviceClient.CreateFromConnectionString(connectionString, transport);
 
-            var deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Amqp);
+            try
+            {
+                await client.OpenAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception raised while trying to open device {device.Id}: {ex}");
+                client.Dispose();
+                client = null;
+            }
 
+            return client;
+        }
+
+        static async Task DeviceToCloudMessage(string deviceId, string deviceConnectionString, DeviceClient deviceClient)
+        {
             var currentDataValue = 0;
             var messageTemplate = setting.Message;
             if (string.IsNullOrEmpty(messageTemplate))
@@ -179,7 +181,6 @@ namespace DeviceLoad
             var stopWatch = Stopwatch.StartNew();
             long lastCheckpoint;
             long interval = 60000 / setting.MessagePerMin;    // in miliseconds
-
             long expectedNumofMessage = setting.MessagePerMin * setting.DurationInMin;
 
             long count = 0;
@@ -188,57 +189,32 @@ namespace DeviceLoad
             {
                 lastCheckpoint = stopWatch.ElapsedMilliseconds;
 
-
                 currentDataValue = rnd.Next(-20, 20);
-                string messageString = string.Empty;
-                if (setting.ReadBlobSwitch)
+                string messageString = messageTemplate;
+                messageString = messageString.Replace("%deviceId%", deviceId);
+                messageString = messageString.Replace("%value%", currentDataValue.ToString());
+                messageString = messageString.Replace("%datetime%", DateTime.UtcNow.ToString());
+
+                var message = new Microsoft.Azure.Devices.Client.Message(Encoding.UTF8.GetBytes(messageString));
+
+                for (int i = 0; i < 10; i++)
                 {
-                    IEnumerable<string> messages =
-                        messagePereadController.GetMessages(deviceId, DateTime.Now);
-                    if (messages != null)
+                    try
                     {
-                        foreach (var message in messages)
-                        {
-                            await deviceClient.SendEventAsync(new Microsoft.Azure.Devices.Client.Message(Encoding.ASCII.GetBytes(message)));
-                            messageString = message;
-                            count++;
-                        }
+                        await deviceClient.SendEventAsync(message);
                     }
-                }
-                else
-                {
-                    messageString = messageTemplate;
-                    messageString = messageString.Replace("%deviceId%", deviceId);
-                    messageString = messageString.Replace("%value%", currentDataValue.ToString());
-                    messageString = messageString.Replace("%datetime%", DateTime.UtcNow.ToString());
-
-                    var message = new Microsoft.Azure.Devices.Client.Message(Encoding.ASCII.GetBytes(messageString));
-
-                    for (int i = 0; i < 10; i++)
+                    catch (Exception ex)
                     {
-                        try
-                        {
-                            await deviceClient.SendEventAsync(message);
+                        Console.WriteLine($"{stopWatch.Elapsed}: {deviceId} send message failed: {ex}");
+                        await Task.Delay(1000);
 
-                            if (count % 10 == 0)
-                            {
-                                Console.WriteLine($"{DateTime.Now.ToString("T")}:{deviceId} > Sending {count} message");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"{DateTime.Now.ToString("T")}: {deviceId}: Send message failed: {ex.Message}:{ex.StackTrace}");
-                            await Task.Delay(1000);
-
-                            deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, Microsoft.Azure.Devices.Client.TransportType.Amqp);
-                            continue;
-                        }
-
-                        count++;
-                        break;
+                        deviceClient.Dispose();
+                        deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, transport);
+                        continue;
                     }
 
-                    //resultUpdater.ReportMessages(deviceId, count);                    
+                    count++;
+                    break;
                 }
 
                 // add 200ms 
@@ -248,10 +224,8 @@ namespace DeviceLoad
                     await Task.Delay(TimeSpan.FromMilliseconds(delayTime));
                 }
             }
-            if (setting.ReadBlobSwitch)
-                messagePereadController.StopTransport();
 
-            Console.WriteLine("{0}: {1} - Finish sending {2} message (expected: {3})", stopWatch.Elapsed.ToString(@"mm\:ss"), deviceId, count, expectedNumofMessage);
+            Console.WriteLine($"{stopWatch.Elapsed}: {deviceId} - Finish sending {count} message (expected: {expectedNumofMessage})");
         }
 
         static string DeviceConnectionString(string ioTHubHostName, Device device)
