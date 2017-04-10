@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.Azure.Devices;
+using System;
+using System.Linq;
 
 namespace IoTHubReaderSample
 {
@@ -9,18 +11,16 @@ namespace IoTHubReaderSample
         public string PartitionId { get; private set; }
         public string GroupName { get; private set; }
         public DateTime StartingDateTimeUtc { get; private set; }
-        public string DeviceID { get; private set; }
-        public bool AsyncEventProcess { get; private set; }
 
         public Settings(CommandArguments parsedArguments)
         {
-            ConnectionString = parsedArguments.ConnectionString;
-            Path = parsedArguments.Path;
+            var builder = IotHubConnectionStringBuilder.Create(parsedArguments.ConnectionString);
+
+            ConnectionString = $"Endpoint={parsedArguments.EventHubEndpoint};SharedAccessKeyName={builder.SharedAccessKeyName};SharedAccessKey={builder.SharedAccessKey}";
+            Path = builder.HostName.Split('.').First();
             PartitionId = parsedArguments.PartitionId;
             GroupName = parsedArguments.GroupName;
             StartingDateTimeUtc = DateTime.UtcNow - TimeSpan.FromMinutes(parsedArguments.OffsetInMinutes);
-            DeviceID = parsedArguments.DeviceID;
-            AsyncEventProcess = parsedArguments.AsyncEventProcess;
         }
     }
 }

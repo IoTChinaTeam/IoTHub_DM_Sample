@@ -10,11 +10,11 @@ namespace IoTHubReaderSample
 {
     class CommandArguments
     {
-        [Argument(ArgumentType.Required, ShortName = "c", HelpText = "Listening connection string of IoTHub, in from like: <Event Hub-compatible endpoint>;SharedAccessKeyName=<access policy name>;SharedAccessKey=<key>")]
+        [Argument(ArgumentType.Required, ShortName = "c", HelpText = "IoT Hub connection string")]
         public string ConnectionString;
 
-        [Argument(ArgumentType.Required, ShortName = "e", HelpText = "Event Hub-compatible name")]
-        public string Path;
+        [Argument(ArgumentType.Required, ShortName = "e", HelpText = "Event Hub-compatible endpoint")]
+        public string EventHubEndpoint;
 
         [Argument(ArgumentType.AtMostOnce, ShortName = "p", DefaultValue = "0", HelpText = "The ID of the interesting partition")]
         public string PartitionId;
@@ -24,12 +24,6 @@ namespace IoTHubReaderSample
 
         [Argument(ArgumentType.AtMostOnce, ShortName = "o", DefaultValue = 60, HelpText = "The starting offset for receiving messages")]
         public int OffsetInMinutes;
-
-        [Argument(ArgumentType.AtMostOnce, ShortName = "d", HelpText = "The ID of the interesting device")]
-        public string DeviceID;
-
-        [Argument(ArgumentType.AtMostOnce, ShortName = "a", DefaultValue = false, HelpText = "Use async task in event process")]
-        public bool AsyncEventProcess;
 
         public bool ReadFromSettings()
         {
@@ -42,12 +36,12 @@ namespace IoTHubReaderSample
             }
             ConnectionString = value;
 
-            value = ConfigurationManager.AppSettings["Path"];
+            value = ConfigurationManager.AppSettings["EventHubEndpoint"];
             if (string.IsNullOrWhiteSpace(value))
             {
                 return false;
             }
-            Path = value;
+            EventHubEndpoint = value;
 
             value = ConfigurationManager.AppSettings["PartitionId"];
             PartitionId = string.IsNullOrWhiteSpace(value) ? "0" : value;
@@ -63,18 +57,6 @@ namespace IoTHubReaderSample
             catch
             {
                 OffsetInMinutes = 60;
-            }
-
-            DeviceID = ConfigurationManager.AppSettings["DeviceID"];
-
-            value = ConfigurationManager.AppSettings["AsyncEventProcess"];
-            try
-            {
-                AsyncEventProcess = bool.Parse(value);
-            }
-            catch
-            {
-                AsyncEventProcess = false;
             }
 
             return true;
@@ -114,7 +96,7 @@ namespace IoTHubReaderSample
                 Console.WriteLine($"{DateTime.Now}, running for {stopwatch.Elapsed}");
                 Console.WriteLine($"PartitionId:              {settings.PartitionId}");
                 Console.WriteLine($"Total # of messages:      {indicators.TotalMessages}, in last minute: {indicators.DeviceToIoTHubDelay.Count}");
-                Console.WriteLine($"Overall throughput:       {(int)(indicators.TotalMessages / stopwatch.Elapsed.TotalMinutes)} messages/min., Async event process = {settings.AsyncEventProcess}");
+                Console.WriteLine($"Overall throughput:       {(int)(indicators.TotalMessages / stopwatch.Elapsed.TotalMinutes)} messages/minute");
                 Console.WriteLine($"Total # of devices:       {indicators.TotalDevices}");
                 Console.WriteLine($"Avg. device-IoTHub delay: {FormatDelay(indicators.DeviceToIoTHubDelay.StreamAvg)}, in last minute: {FormatDelay(indicators.DeviceToIoTHubDelay.WindowAvg)}");
                 Console.WriteLine($"Avg. E2E delay:           {FormatDelay(indicators.E2EDelay.StreamAvg)}, in last minute: {FormatDelay(indicators.E2EDelay.WindowAvg)}");
@@ -144,14 +126,7 @@ namespace IoTHubReaderSample
                         continue;
                     }
 
-                    if (settings.AsyncEventProcess)
-                    {
-                        var task = Task.Run(() => indicators.Push(eventData, settings.DeviceID));
-                    }
-                    else
-                    {
-                        indicators.Push(eventData, settings.DeviceID);
-                    }
+                    indicators.Push(eventData);
                 }
                 catch (Exception ex)
                 {

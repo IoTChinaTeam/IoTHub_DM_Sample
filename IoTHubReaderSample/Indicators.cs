@@ -41,7 +41,7 @@ namespace IoTHubReaderSample
             SampleEvent = string.Empty;
         }
 
-        public void Push(EventData eventData, string interestingDevice)
+        public void Push(EventData eventData)
         {
             var receiveTimeUtc = DateTime.UtcNow;
             TotalMessages++;
@@ -57,11 +57,8 @@ namespace IoTHubReaderSample
 
             var bytes = eventData.GetBytes();
             var content = Encoding.UTF8.GetString(bytes);
-            if (string.IsNullOrWhiteSpace(interestingDevice) || interestingDevice == deviceId)
-            {
-                SampleEventSender = deviceId;
-                SampleEvent = content;
-            }
+            SampleEventSender = deviceId;
+            SampleEvent = content;
 
             var root = JsonConvert.DeserializeObject(content) as JToken;
             var sendTimeUtc = root.Value<DateTime>("DeviceUtcDatetime");
