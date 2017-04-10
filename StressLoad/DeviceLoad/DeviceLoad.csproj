@@ -181,10 +181,6 @@
     <Compile Include="..\StressLoad\DefaultKey.cs">
       <Link>DefaultKey.cs</Link>
     </Compile>
-    <Compile Include="AzureBlobDataReader.cs" />
-    <Compile Include="IBlobDataReader.cs" />
-    <Compile Include="MessagePereadController.cs" />
-    <Compile Include="ResultUpdater.cs" />
     <Compile Include="Setting.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

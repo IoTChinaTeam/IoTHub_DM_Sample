@@ -1,7 +1,6 @@
 ﻿using Microsoft.Azure.Batch;
 using Microsoft.Azure.Batch.Auth;
 using Microsoft.Azure.Batch.Common;
-using Microsoft.Azure.IoT.Studio.Data;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using System;
@@ -11,7 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Microsoft.Azure.IoT.Studio.WebJob
+namespace StressLoad
 {
     public class BatchConnector : IBatchConnector
     {
@@ -23,7 +22,6 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
 
             var builder = new UriBuilder(BatchServiceUrl);
             BatchAccountName = builder.Host.Split('.').First();
-
             BatchAccountKey = ConfigurationManager.AppSettings["BatchAccountKey"];
 
             StorageConnectionString = ConfigurationManager.AppSettings["StorageConnectionString"];
@@ -164,16 +162,13 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
                 await Task.Delay(1000);
             }
 
-            //var resource = job.ListTasks().First().ResourceFiles.First();
-            //var container = new Uri(resource.BlobSource).AbsolutePath.Trim('/').Split('/')[0];
+            Console.WriteLine($"{DateTime.Now.ToString("T")} - Press any key to delete the job");
+            Console.ReadKey();
 
             Console.WriteLine($"{DateTime.Now.ToString("T")} - Delete job from batch");
 
             await DeleteContainersAsync(StorageAccount);
             await client.JobOperations.DeleteJobAsync(testJob.BatchJobId);
-
-            // Don't delete Pool
-            //await client.PoolOperations.DeletePoolAsync(testJob.BatchPoolId);
 
             return true;
         }
@@ -288,7 +283,7 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
                     testJob.Message = string.Empty;
                 }
 
-                var command = string.Format("DeviceLoad.exe {0} {1} {2} {3} {4} {5} {6}-{7} \"{8}\"",
+                var command = string.Format("DeviceLoad.exe {0} {1} {2} {3} {4} {5} {6}-{7} \"{8}\" {9}",
                     StorageConnectionString,
                     testJob.DeviceClientEndpoint,
                     testJob.DevicePerVm / jobsPerVm,
@@ -297,7 +292,8 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
                     testJob.BatchJobId,
                     ConfigurationManager.AppSettings["DeviceIdPrefix"],
                     i.ToString().PadLeft(4, '0'),
-                    testJob.Message.Replace("\"", "\\\""));
+                    testJob.Message.Replace("\"", "\\\""),
+                    testJob.Transport);
 
                 CloudTask taskWithFiles = new CloudTask("deviceTest" + i, command);
                 taskWithFiles.ResourceFiles = resourceFiles;

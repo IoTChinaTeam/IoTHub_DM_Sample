@@ -1,13 +1,11 @@
 ﻿using Microsoft.Azure.Devices;
-using Microsoft.Azure.IoT.Studio.Data;
-using Microsoft.Azure.IoT.Studio.WebJob;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
-namespace ConsoleApp1
+namespace StressLoad
 {
     class Program
     {
@@ -26,6 +24,7 @@ namespace ConsoleApp1
                 JobId = DateTime.UtcNow.Ticks,
                 DevicePerVm = devicePerVm,
                 Message = ConfigurationManager.AppSettings["Message"],
+                Transport = ConfigurationManager.AppSettings["Transport"],
                 MessagePerMin = int.Parse(ConfigurationManager.AppSettings["MessagePerMin"]),
                 NumofVm = numofVM,
                 SizeOfVM = (SizeOfVMType)Enum.Parse(typeof(SizeOfVMType), ConfigurationManager.AppSettings["SizeOfVM"]),
@@ -35,12 +34,7 @@ namespace ConsoleApp1
 
             job.Deploy().Wait();
             job.DeleteTest().Wait();
-            Console.WriteLine(" complete the test");
-        }
-
-        static string GetDeviceid(string deviceIdPrefix, int vmIndex, int deviceIndex)
-        {
-            return $"{deviceIdPrefix}-{vmIndex.ToString().PadLeft(4, '0')}-{deviceIndex.ToString().PadLeft(10, '0')}";
+            Console.WriteLine("Complete the test");
         }
 
         static async Task RemoveDevices()

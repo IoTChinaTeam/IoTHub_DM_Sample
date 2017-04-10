@@ -13,7 +13,7 @@ namespace DeviceLoad
 {
     class Program
     {
-        private const Microsoft.Azure.Devices.Client.TransportType transport = Microsoft.Azure.Devices.Client.TransportType.Mqtt;
+        private static Microsoft.Azure.Devices.Client.TransportType transport;
         private static Setting setting;
         private static Stopwatch wallclock;
 
@@ -30,6 +30,11 @@ namespace DeviceLoad
             }
 
             ServicePointManager.DefaultConnectionLimit = 200;
+
+            if (!Enum.TryParse(setting.Transport, out transport))
+            {
+                transport = Microsoft.Azure.Devices.Client.TransportType.Mqtt;
+            }
 
             wallclock = Stopwatch.StartNew();
             var devices = CreateDevices().Result;
@@ -118,7 +123,7 @@ namespace DeviceLoad
             using (var cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total"))
             using (var ramCounter = new PerformanceCounter("Memory", "Available MBytes"))
             {
-                Console.WriteLine($"Opening clients for {devices.Count()} devices");
+                Console.WriteLine($"Opening clients for {devices.Count()} devices, transport = {transport}");
                 var clients = await OpenClientsAsync(devices, cpuCounter, ramCounter);
 
                 var tasks = clients.Select(pair => DeviceToCloudMessage(pair.Key.Id, DeviceConnectionString(setting.IoTHubHostName, pair.Key), pair.Value)).ToList();

@@ -1,19 +1,7 @@
 ﻿using Microsoft.Azure.Batch;
-using Microsoft.Azure.Batch.Auth;
-using Microsoft.Azure.Batch.Common;
-using Microsoft.Azure.Batch.FileStaging;
-using Microsoft.Azure.IoT.Studio.Data;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Auth;
-using Microsoft.WindowsAzure.Storage.Blob;
-using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 
-namespace Microsoft.Azure.IoT.Studio.WebJob
+namespace StressLoad
 {
     public static class BatchHelper
     {
@@ -24,7 +12,7 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
         {
             get
             {
-                if( connector == null)
+                if (connector == null)
                 {
                     connector = new BatchConnector();
                 }

@@ -1,13 +1,12 @@
 ﻿using Microsoft.Azure.Batch;
-using Microsoft.Azure.IoT.Studio.Data;
 using System.Threading.Tasks;
 
-namespace Microsoft.Azure.IoT.Studio.WebJob
+namespace StressLoad
 {
     public interface IBatchConnector
     {
         string StorageConnectionString { get; }
-        
+
         Task<bool> Deploy(TestJob testJob);
 
         Task<TestJobStatus> GetStatus(TestJob testJob);
