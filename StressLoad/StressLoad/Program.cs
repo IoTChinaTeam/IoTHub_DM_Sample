@@ -1,14 +1,11 @@
-﻿using Microsoft.Azure.IoT.Studio.Data;
+﻿using Microsoft.Azure.Devices;
+using Microsoft.Azure.IoT.Studio.Data;
 using Microsoft.Azure.IoT.Studio.WebJob;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Configuration;
-using Microsoft.Azure.Devices;
-using StressLoad;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace ConsoleApp1
 {
@@ -24,7 +21,18 @@ namespace ConsoleApp1
 
             var devicePerVm = int.Parse(ConfigurationManager.AppSettings["DevicePerVm"]);
             var numofVM = int.Parse(ConfigurationManager.AppSettings["NumofVm"]);
-            TestJob job = new TestJob() { JobId = DateTime.UtcNow.Ticks, DevicePerVm = devicePerVm, Message = ConfigurationManager.AppSettings["Message"], MessagePerMin = int.Parse(ConfigurationManager.AppSettings["MessagePerMin"]), NumofVm = numofVM, SizeOfVM = (SizeOfVMType)Enum.Parse(typeof(SizeOfVMType), ConfigurationManager.AppSettings["SizeOfVM"]), DeviceClientEndpoint= ConfigurationManager.AppSettings["DeviceClientEndpoint"], DurationInMin= int.Parse(ConfigurationManager.AppSettings["DurationInMin"]) };
+            TestJob job = new TestJob
+            {
+                JobId = DateTime.UtcNow.Ticks,
+                DevicePerVm = devicePerVm,
+                Message = ConfigurationManager.AppSettings["Message"],
+                MessagePerMin = int.Parse(ConfigurationManager.AppSettings["MessagePerMin"]),
+                NumofVm = numofVM,
+                SizeOfVM = (SizeOfVMType)Enum.Parse(typeof(SizeOfVMType), ConfigurationManager.AppSettings["SizeOfVM"]),
+                DeviceClientEndpoint = ConfigurationManager.AppSettings["DeviceClientEndpoint"],
+                DurationInMin = int.Parse(ConfigurationManager.AppSettings["DurationInMin"])
+            };
+
             job.Deploy().Wait();
             job.DeleteTest().Wait();
             Console.WriteLine(" complete the test");

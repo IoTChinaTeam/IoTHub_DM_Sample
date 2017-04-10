@@ -1,10 +1,8 @@
 ﻿using Microsoft.Azure.Batch;
 using Microsoft.Azure.Batch.Auth;
 using Microsoft.Azure.Batch.Common;
-using Microsoft.Azure.Batch.FileStaging;
 using Microsoft.Azure.IoT.Studio.Data;
 using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Blob;
 using System;
 using System.Collections.Generic;
@@ -18,17 +16,20 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
     public class BatchConnector : IBatchConnector
     {
         const string ContainerName = "stresstest";
+
         public BatchConnector()
         {
             BatchServiceUrl = ConfigurationManager.AppSettings["BatchServiceUrl"];
-            BatchAccountName = ConfigurationManager.AppSettings["BatchAccountName"];
+
+            var builder = new UriBuilder(BatchServiceUrl);
+            BatchAccountName = builder.Host.Split('.').First();
+
             BatchAccountKey = ConfigurationManager.AppSettings["BatchAccountKey"];
 
             StorageConnectionString = ConfigurationManager.AppSettings["StorageConnectionString"];
             StorageAccount = CloudStorageAccount.Parse(StorageConnectionString);
-            
-            BatchOsFamily = ConfigurationManager.AppSettings["BatchOsFamily"];
-            BatchOsSize = ConfigurationManager.AppSettings["BatchOsSize"];
+
+            BatchOsSize = ConfigurationManager.AppSettings["SizeOfVM"];
         }
 
         private string BatchServiceUrl { get; set; }
@@ -36,10 +37,10 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
         private string BatchAccountKey { get; set; }
 
         private CloudStorageAccount StorageAccount { get; set; }
-        
+
         public string StorageConnectionString { get; private set; }
 
-        private string BatchOsFamily { get; set; }
+        private string BatchOsFamily { get; } = "4";
 
         private string BatchOsSize { get; set; }
 
@@ -47,7 +48,7 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
         {
             Console.WriteLine("{0} - Deploy {1}", DateTime.Now.ToString("T"), testJob.BatchJobId);
 
-            BatchSharedKeyCredentials credentials = new BatchSharedKeyCredentials(BatchServiceUrl,BatchAccountName,BatchAccountKey);
+            BatchSharedKeyCredentials credentials = new BatchSharedKeyCredentials(BatchServiceUrl, BatchAccountName, BatchAccountKey);
             using (BatchClient batchClient = await BatchClient.OpenAsync(credentials))
             {
                 batchClient.CustomBehaviors.Add(RetryPolicyProvider.LinearRetryProvider(TimeSpan.FromSeconds(10), 3));
@@ -155,10 +156,10 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
             while (true)
             {
                 var list = job.ListTasks();
-                if (list.Count(m => m.State == TaskState.Completed)== list.Count())
+                if (list.Count(m => m.State == TaskState.Completed) == list.Count())
                 {
                     break;
-                }               
+                }
 
                 await Task.Delay(1000);
             }
@@ -264,11 +265,11 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
                 }
             }
 
-            if(jobExists)
+            if (jobExists)
             {
                 // check whether task are there
                 var job = await batchClient.JobOperations.GetJobAsync(testJob.BatchJobId);
-                if (job != null && job.ListTasks().Count() >0)
+                if (job != null && job.ListTasks().Count() > 0)
                 {
                     return true;
                 }
@@ -279,10 +280,10 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
             Console.WriteLine($"{DateTime.Now.ToString("T")} - Upload assemblies for batch");
             var resourceFiles = await UploadFilesToContainerAsync(cloudStorageAccount);
 
-            var jobsPerVm = 4 * (int)Math.Pow(2, (int)testJob.SizeOfVM); 
+            var jobsPerVm = 4 * (int)Math.Pow(2, (int)testJob.SizeOfVM);
             for (int i = 0; i < jobsPerVm * testJob.NumofVm; i++)
             {
-                if(string.IsNullOrEmpty(testJob.Message))
+                if (string.IsNullOrEmpty(testJob.Message))
                 {
                     testJob.Message = string.Empty;
                 }
@@ -290,7 +291,7 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
                 var command = string.Format("DeviceLoad.exe {0} {1} {2} {3} {4} {5} {6}-{7} \"{8}\"",
                     StorageConnectionString,
                     testJob.DeviceClientEndpoint,
-                    testJob.DevicePerVm/jobsPerVm,
+                    testJob.DevicePerVm / jobsPerVm,
                     testJob.MessagePerMin,
                     testJob.DurationInMin,
                     testJob.BatchJobId,
@@ -302,7 +303,7 @@ namespace Microsoft.Azure.IoT.Studio.WebJob
                 taskWithFiles.ResourceFiles = resourceFiles;
                 await batchClient.JobOperations.AddTaskAsync(testJob.BatchJobId, taskWithFiles);
             }
-                        
+
             return true;
         }
 
